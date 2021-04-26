@@ -3,7 +3,7 @@ import tensorflow.keras as keras
 from tensorflow.keras.layers import Dense  #fully connected dens layer
 
 class ActorCriticNetwork(keras.Model):
-    def __init__(self, n_actions, fc1_dims=1024, fc2_dims=512,
+    def __init__(self, n_actions, fc1_dims=128, fc2_dims=128,
             name='actor_critic', chkpt_dir='tmp/actor_critic'):
         super(ActorCriticNetwork, self).__init__()
         self.fc1_dims = fc1_dims
@@ -12,13 +12,14 @@ class ActorCriticNetwork(keras.Model):
         self.model_name = name
         self.checkpoint_dir = chkpt_dir
         self.checkpoint_file = os.path.join(self.checkpoint_dir, name+'_ac')
-        # self.init_xavier = tf.contrib.layers.xavier_initializer()
+        
         self.fc1 = Dense(self.fc1_dims, activation='relu')
         self.fc2 = Dense(self.fc2_dims, activation='relu')
-        self.v = Dense(16, activation=None)                                          #value function, single value with no activation
-        self.pi = Dense(n_actions, activation='relu')                      #policy pi with softplus activation
+        self.v = Dense(1, activation=None)                                          #value function, single value with no activation
+        self.pi = Dense(n_actions, activation='softmax')                      #policy pi with softplus activation        
 
     def call(self, state):
+        # forward pass
         value = self.fc1(state)
         value = self.fc2(value)
 

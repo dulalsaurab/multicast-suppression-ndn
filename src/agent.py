@@ -4,7 +4,7 @@ import tensorflow_probability as tfp
 from network import ActorCriticNetwork
 
 class Agent:
-    def __init__(self, alpha=0.0003, gamma=0.99, n_actions=16):
+    def __init__(self, alpha=0.0003, gamma=0.99, n_actions=4):
         self.gamma = gamma
         self.n_actions = n_actions
         self.action = None      #keep track of last action
@@ -15,13 +15,11 @@ class Agent:
     def choose_action(self, observation):
         state = tf.convert_to_tensor([observation])
         _, probs = self.actor_critic(state)     #feed through neural network
-        action_probabilities = tfp.distributions.Categorical(probs=probs)
+        action_probabilities = tfp.distributions.Normal(loc=probs[0][0], scale=probs[0][1])
         action = action_probabilities.sample()
         log_prob = action_probabilities.log_prob(action)
-        print(log_prob)
         self.action = action
-        print(self.action)
-        return action.numpy()[0]
+        return action.numpy()
 
     def save_models(self):
         print('... saving models ...')
@@ -31,7 +29,7 @@ class Agent:
         print('... loading models ...')
         self.actor_critic.load_weights(self.actor_critic.checkpoint_file)
         
-    def learn(self, state, reward, state_, done):
+    def learn(self, state, reward, state_, done):                       #this is the train
         state = tf.convert_to_tensor([state], dtype=tf.float32)
         state_ = tf.convert_to_tensor([state_], dtype=tf.float32)
         reward = tf.convert_to_tensor(reward, dtype=tf.float32) # not fed to NN

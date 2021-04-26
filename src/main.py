@@ -5,24 +5,24 @@ from agent import Agent
 from gym import wrappers
 import environment as e
 from environment import _Embedding, MulticastEnvironment
+import tensorflow as tf
 
 if __name__ == '__main__':
 
-    env = MulticastEnvironment('multi-cast')
-    embed = _Embedding()
+    env = MulticastEnvironment('multi-cast')    
     objects_A = e.generate_prefixes('/uofm/',  'abcdefgh')
-    objects_B = e.generate_prefixes('/mit/',  'ijklmno')
+    objects_B = e.generate_prefixes('/mit/',  'ijklmnox')
     objects_B = e.generate_prefixes('/ucla/',  'pqrstuvw')
     doc_dict = e.doc_dict
-
-    agent = Agent(alpha=1e-5, n_actions=16)
-
-    delay = 5
-    dup = 2
-    observation = list(doc_dict.values())[0]+[2+130, 5+230]
+    embed = _Embedding(len(doc_dict.values()))
+    agent = Agent(alpha=1e-5, n_actions=2)
+ 
+    # duplicates, delay_timer 
+    observation = list(doc_dict.values())[0]
     observation = embed.get_embedding(observation)
-    print(observation.shape)
-    # print(objservation)
+    observation = tf.math.reduce_mean(observation, axis=0)
+    observation = tf.concat ((observation, [2, 5]), axis=0)
+    
     done = False
     while not done:
         action = agent.choose_action(observation)

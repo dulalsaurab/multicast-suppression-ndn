@@ -1,5 +1,4 @@
-
-from gym import Env
+# from gym import Env
 # from gym.spaces import Descrete, Box
 import re
 import string
@@ -31,8 +30,8 @@ MAX_LENGTH = 4
 
 class MulticastEnvironment():
   action_bound = [0, 10]
-  action_dim = 3
-  state_dim = 14
+  action_dim = 2
+  state_dim = 4
   reward_range = [-100, 100]
 
   def __init__(self, name, obj_dict = {}, curr_state = None):
@@ -60,8 +59,8 @@ class MulticastEnvironment():
   def _reset(self):
     pass
 
-
 # need to compute the reward for an interval
+# A1, --- after 5ms -- compute reward:  A2,  
   def _get_reward(dup_count, prev_act_timestamp):
     time_in_sec = abs (int ((time.time() - prev_act_timestamp) * 1000))
     reward = - dup_count/(time_in_sec*time_in_sec + 1)
@@ -70,18 +69,20 @@ class MulticastEnvironment():
   def sample_action(self):
     return np.random.uniform(*self.action_bound, size = self.action_dim)
 
-def generate_prefixes(prefix, alphabets):
-    name_prefixes = [prefix+''.join(random.choices(alphabets, k=5)) for i in range(0,20)]
+def generate_prefixes(prefix, alphabets, number_of = 20):
+    global map_counter
+    name_prefixes = [prefix+''.join(random.choices(alphabets, k=5)) for i in range(0,number_of)]
     for name in name_prefixes:
-        pad_emb = [0]*MAX_LENGTH
-        for element in name:
-          try:
-            map_val = word_to_int_map[name]
-          except:
-            word_to_int_map[name] = map_counter+1
-        pad_emb = [0]*MAX_LENGTH
-        emb = [ord(i) for i in list(name)]
-        pad_emb[:len(emb)] = emb 
+        pad_emb = list()
+        for element in name.split('/'):
+          if element == "":
+            continue
+          if element in word_to_int_map:
+            pad_emb.append(word_to_int_map[element])
+          else:
+            map_counter = map_counter + 1 
+            word_to_int_map[element] = map_counter
+            pad_emb.append(map_counter)
         doc_dict[name] = pad_emb
     return name_prefixes
 
@@ -97,19 +98,15 @@ def object_embedding_char(objects):
         embedding_dict[obj] = list(vec_dict.values())
     return embedding_dict
 
-objects_A = generate_prefixes('/uofm/',  'abcdefgh')
-objects_B = generate_prefixes('/mit/',  'ijklmno')
-objects_B = generate_prefixes('/ucla/',  'pqrstuvw')
-
 class _Embedding():
-    def __init__(self, vocab_size=300, emd_dim=50):
+    def __init__(self, number_of_document, vocab_size=63, emd_dim=40):
         self.vocab_size = vocab_size
         self.emd = emd_dim
-        self.input = Input(shape=(len(doc_dict.values()), MAX_LENGTH), dtype='float64') #len(doc_dict.values()) = number of document
-        self.word_input = Input(shape=(MAX_LENGTH,), dtype='float64') 
-        self.word_embedding = Embedding(input_dim=vocab_size, output_dim=2, input_length=MAX_LENGTH)(self.word_input)
+        self.input = Input(shape=(number_of_document, MAX_LENGTH-2), dtype='float64') #len(doc_dict.values()) = number of document
+        self.word_input = Input(shape=(MAX_LENGTH-2), dtype='float64') 
+        self.word_embedding = Embedding(input_dim=vocab_size, output_dim=4,  input_length=MAX_LENGTH-2)(self.word_input)
         self.word_vec=Flatten()(self.word_embedding)
-        self.embed_model = Model([self.word_input],self.word_vec)
+        self.embed_model = Model([self.word_input], self.word_vec)
         self.embed_model.compile(optimizer=tf.keras.optimizers.Adam(lr=1e-3), loss='binary_crossentropy', metrics=['acc']) 
 
     def get_embedding(self, words_id):
