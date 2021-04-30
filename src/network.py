@@ -3,7 +3,7 @@ import tensorflow.keras as keras
 from tensorflow.keras.layers import Dense  #fully connected dens layer
 
 class ActorCriticNetwork(keras.Model):
-    def __init__(self, n_actions, fc1_dims=128, fc2_dims=128,
+    def __init__(self, n_actions, fc1_dims=1024, fc2_dims=512,
             name='actor_critic', chkpt_dir='tmp/actor_critic'):
         super(ActorCriticNetwork, self).__init__()
         self.fc1_dims = fc1_dims

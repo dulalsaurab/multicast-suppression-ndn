@@ -61,17 +61,33 @@ class MulticastEnvironment():
 
 # need to compute the reward for an interval
 # A1, --- after 5ms -- compute reward:  A2,  
-  def _get_reward(dup_count, prev_act_timestamp):
-    time_in_sec = abs (int ((time.time() - prev_act_timestamp) * 1000))
-    reward = - dup_count/(time_in_sec*time_in_sec + 1)
+  def _get_reward(self, dup_count, prev_act_timestamp):
+    # time_in_sec = abs (int ((time.time() - prev_act_timestamp) * 1000))
+    # reward = - dup_count/(time_in_sec*time_in_sec + 1)
+    if dup_count <= 0: 
+      reward = 5; 
+    else:
+      reward = -dup_count
+    # reward = - (1/dup_count+2)*10
     return reward
 
   def sample_action(self):
-    return np.random.uniform(*self.action_bound, size = self.action_dim)
+    return np.random.uniform(0, 1) #return some number between 0 and 1
+    # return np.random.uniform(*self.action_bound, size = self.action_dim)
 
 def generate_prefixes(prefix, alphabets, number_of = 20):
     global map_counter
-    name_prefixes = [prefix+''.join(random.choices(alphabets, k=5)) for i in range(0,number_of)]
+    name_prefixes = None
+    if prefix == "/uofm/":
+        p = ['ahdhg', 'afhag', 'babgh', 'adgfe', 'bhada', 'deceh', 'gcbhb', 'fbebh', 'hdbgh', 'gcddf', 'ehhfh', 'cffff', 'eegec', 'baafd', 'hfecf', 'hhbdf', 'hfgaa', 'hgcha', 'aehac', 'acgce']
+        name_prefixes = ["/uofm/"+i for i in p]
+    if prefix == "/mit/":
+        p = ['nijmm', 'jmknk', 'niiij', 'xnkoi', 'ljloj', 'jokim', 'konji', 'iojom', 'oxloi', 'xjjkl', 'jnmij', 'xkimm', 'njoix', 'lxikk', 'mojim', 'ixilj', 'xikjm', 'xmnnj', 'mnxkj', 'ikomn']
+        name_prefixes =["/mit/"+i for i in p] 
+    if prefix == "/ucla/":
+        p = ['wrqqt', 'vuutq', 'rqusw', 'tsrqr', 'qqspq', 'pqvrq', 'vwwqt', 'prppr', 'pppup', 'vqsuw', 'rrrur', 'vwqss', 'quvqp', 'pswrr', 'rqvvp', 'wruuv', 'ruuqu', 'twuvv', 'qpvur', 'vqtrv']
+        name_prefixes =["/mit/"+i for i in p]  
+    
     for name in name_prefixes:
         pad_emb = list()
         for element in name.split('/'):
@@ -102,9 +118,9 @@ class _Embedding():
     def __init__(self, number_of_document, vocab_size=63, emd_dim=40):
         self.vocab_size = vocab_size
         self.emd = emd_dim
-        self.input = Input(shape=(number_of_document, MAX_LENGTH-2), dtype='float64') #len(doc_dict.values()) = number of document
-        self.word_input = Input(shape=(MAX_LENGTH-2), dtype='float64') 
-        self.word_embedding = Embedding(input_dim=vocab_size, output_dim=4,  input_length=MAX_LENGTH-2)(self.word_input)
+        self.input = Input(shape=(number_of_document, MAX_LENGTH-1), dtype='float32') #len(doc_dict.values()) = number of document
+        self.word_input = Input(shape=(MAX_LENGTH-2), dtype='float32') 
+        self.word_embedding = Embedding(input_dim=vocab_size, output_dim=12,  input_length=MAX_LENGTH-1)(self.word_input)
         self.word_vec=Flatten()(self.word_embedding)
         self.embed_model = Model([self.word_input], self.word_vec)
         self.embed_model.compile(optimizer=tf.keras.optimizers.Adam(lr=1e-3), loss='binary_crossentropy', metrics=['acc']) 
