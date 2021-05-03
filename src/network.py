@@ -16,7 +16,7 @@ class ActorCriticNetwork(keras.Model):
         self.fc1 = Dense(self.fc1_dims, activation='relu')
         self.fc2 = Dense(self.fc2_dims, activation='relu')
         self.v = Dense(1, activation=None)                                          #value function, single value with no activation
-        self.pi = Dense(n_actions, activation='softmax')                      #policy pi with softplus activation        
+        self.pi = Dense(n_actions, activation=None)                      #policy pi with no activation
 
     def call(self, state):
         # forward pass
