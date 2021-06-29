@@ -66,7 +66,8 @@ public:
   }
 
   // record each interest/data and its count
-  void  recordObjectHistory(const Name& objectName, char type);
+  void  
+  recordObjectHistory(const Name& objectName, char type);
 
   fw::UnsolicitedDataPolicy&
   getUnsolicitedDataPolicy() const
@@ -89,7 +90,11 @@ public: // forwarding entrypoints and tables
   void
   startProcessInterest(const FaceEndpoint& ingress, const Interest& interest)
   {
-    this->recordObjectHistory(interest.getName(), 'i');
+    if (ingress.face.getScope() != ndn::nfd::FACE_SCOPE_LOCAL)
+    {
+      std::cout << "*************  not from local scope" << std::endl;
+      this->recordObjectHistory(interest.getName(), 'i');
+    }
     this->onIncomingInterest(ingress, interest);
   }
 
@@ -100,8 +105,12 @@ public: // forwarding entrypoints and tables
   void
   startProcessData(const FaceEndpoint& ingress, const Data& data)
   {
+    if (ingress.face.getScope() == ndn::nfd::FACE_SCOPE_LOCAL)
+    {
+      std::cout << "******************  not from local scope" << std::endl;
+      this->recordObjectHistory(data.getName(), 'd');
+    } 
     this->onIncomingData(ingress, data);
-    this->recordObjectHistory(data.getName(), 'd');
   }
 
   std::map <Name, int> 

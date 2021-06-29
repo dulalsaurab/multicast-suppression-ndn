@@ -64,22 +64,22 @@ private:
 
     // Create Data packet
     auto data = make_shared<Data>(interest.getName());
-    data->setFreshnessPeriod(10_s);
+    data->setFreshnessPeriod(4_s);
     data->setContent(reinterpret_cast<const uint8_t*>(content.data()), content.size());
 
     // Sign Data packet with default identity
     m_keyChain.sign(*data);
-    // m_keyChain.sign(*data, signingByIdentity(<identityName>));
-    // m_keyChain.sign(*data, signingByKey(<keyName>));
-    // m_keyChain.sign(*data, signingByCertificate(<certName>));
-    // m_keyChain.sign(*data, signingWithSha256());
 
     // Return Data packet to the requester
-    std::cout << "<< D: " << *data << std::endl;
+    std::cout << "<< Data: " << *data << std::endl;
     
-    auto rand_sleep = time::milliseconds(100 + ( std::rand() % ( 100 - 500 + 1 ) ));
+    // send data between 250 to 350 ms
+    auto rand_sleep = time::milliseconds(250 + (std::rand() % (100)));
     std::cout << "next data send out schedule in :" << rand_sleep <<  "time" << std::endl;
-    m_scheduler.schedule(rand_sleep, [this, data] { m_face.put(*data);});
+    m_scheduler.schedule(rand_sleep, [this, data] { 
+     std::cout << "sending data "<< " now " << std::endl; 
+      m_face.put(*data);
+      });
     // m_face.put(*data);
   }
 
@@ -103,7 +103,7 @@ private:
 int
 main(int argc, char** argv)
 {
-  srand( (unsigned)time( NULL ) );
+  srand( (unsigned)time( NULL));
   ndn::Name onName;
   onName= argv[1];
   std:: cout << "this is the name: " << onName << std::endl;

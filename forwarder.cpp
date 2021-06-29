@@ -59,7 +59,6 @@ Forwarder::Forwarder(FaceTable& faceTable)
   m_faceTable.afterAdd.connect([this](const Face &face) {
     face.afterReceiveInterest.connect(
         [this, &face](const Interest &interest, const EndpointId &endpointId) {
-          std::cout << "we receive an interest" << std::endl;
           this->startProcessInterest(FaceEndpoint(face, endpointId), interest);
         });
     face.afterReceiveData.connect(

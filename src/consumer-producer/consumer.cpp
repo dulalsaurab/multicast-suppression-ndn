@@ -57,7 +57,7 @@ public:
     Interest interest(interestName);
     interest.setCanBePrefix(false);
     interest.setMustBeFresh(true);
-    interest.setInterestLifetime(6_s); // The default is 4 seconds
+    interest.setInterestLifetime(1_s); // The default is 4 seconds
 
     std::cout << timeSinceEpochMillisec() << "Sending Interest " << interest << std::endl;
    
@@ -65,8 +65,6 @@ public:
                            bind(&Consumer::onData, this,  _1, _2),
                            bind(&Consumer::onNack, this, _1, _2),
                            bind(&Consumer::onTimeout, this, _1));
-
-    // processEvents will block until the requested data is received or a timeout occurs
     m_face.processEvents();
   }
 
@@ -99,36 +97,41 @@ private:
 int
 main(int argc, char** argv)
 {
-  std::string filename;
-  filename = argv[1];
-  std:: cout << "The name of the file to read prefix from " << filename << std::endl;
-  std::ifstream is(filename);
-  std::istream_iterator<std::string> start(is), end;
-  std::vector<std::string> prefixes(start, end);
+  std::string prefix;
+  int interestCount, atInterval;
+  prefix = argv[1];
+  interestCount = std::stoi(argv[2]);
+  atInterval = std::stoi(argv[3]);
 
+  std::cout << prefix << interestCount << atInterval << std::endl;
   ndn::examples::Consumer consumer;
-  // std::string temp_p = "/uofm/abc";
-  // consumer.run(temp_p, 1);  
-  for (auto prefix: prefixes)
+  for (int i=0; i <= interestCount; i++ )
   {
-    // usleep (1000); //request for data in every 100ms
-    try {
-      // ndn::examples::Consumer consumer;
-      // for each prefix request 1000 times 
-      for (int i=0; i < 1000; i++)
-      {
-          usleep(100);
-          auto temp_p = prefix;
-          // temp_p = prefix.append("/");
-          // temp_p = temp_p.append(std::to_string(i));
-          // std::cout << "request for interest: " << temp_p << std::endl;
-          consumer.run(temp_p, i);
-      }
-    }
-    catch (const std::exception& e) {
-      std::cerr << "ERROR: " << e.what() << std::endl;
-      // return 1;
-    }
+    consumer.run(prefix, i);
+    usleep(atInterval);
   }
+  // // std::string temp_p = "/uofm/abc";
+  // // consumer.run(temp_p, 1);  
+  // for (auto prefix: prefixes)
+  // {
+  //   // usleep (1000); //request for data in every 100ms
+  //   try {
+  //     // ndn::examples::Consumer consumer;
+  //     // for each prefix request 1000 times 
+  //     for (int i=0; i < 1000; i++)
+  //     {
+  //         usleep(100);
+  //         auto temp_p = prefix;
+  //         // temp_p = prefix.append("/");
+  //         // temp_p = temp_p.append(std::to_string(i));
+  //         // std::cout << "request for interest: " << temp_p << std::endl;
+  //         consumer.run(temp_p, i);
+  //     }
+  //   }
+  //   catch (const std::exception& e) {
+  //     std::cerr << "ERROR: " << e.what() << std::endl;
+  //     // return 1;
+  //   }
+  // }
 
 }
