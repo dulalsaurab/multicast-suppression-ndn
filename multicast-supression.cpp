@@ -37,27 +37,7 @@ MulticastSuppression::recordInterest(const Interest interest)
         entryLifetime = ndn::DEFAULT_INTEREST_LIFETIME;
 
     NFD_LOG_INFO("Erasing the interest from the map in : " << entryLifetime); 
-    scheduler::EventId eventId;
-    eventId = getScheduler().schedule(entryLifetime, [=]  {
-                    auto temp_itr = m_interestHistory.find(name);
-                    if (temp_itr != m_interestHistory.end())
-                         {
-                            //  record interest into moving average
-                            updateMeasurment(name,  'i', getDuplicateCount(name, 'i'));
-                            m_interestHistory.erase(name);
-                         }
-        });
-
-    name.appendNumber(0); // 0 for interest
-    auto itr_timer = m_objectExpirationTimer.find(name);
-    if (itr_timer != m_objectExpirationTimer.end()) {
-            NFD_LOG_INFO("Updating timer for interest");
-            itr_timer->second.cancel();
-            itr_timer->second = eventId;
-        }
-    else {
-        m_objectExpirationTimer.emplace(name, eventId);
-    }
+    setUpdateExpiration(entryLifetime, name, 'i');
     print_map (m_interestHistory, 'i');
 }
 
@@ -87,32 +67,40 @@ MulticastSuppression::recordData(const Data data)
         itr_timer->second.cancel();
         // schedule deletion now
         // getScheduler().schedule(0_ms, [=]  {
-                    auto temp_itr = m_interestHistory.find(name);
-                    if (temp_itr != m_interestHistory.end()) {
-                        // need to call moving average
-                        updateMeasurment(name, 'i', getDuplicateCount(name, 'i'));
-                        m_interestHistory.erase(name);
-                        }
-                    print_map(m_interestHistory, 'i'); 
+        auto temp_itr = m_interestHistory.find(name);
+        if (temp_itr != m_interestHistory.end()) {
+            // need to call moving average
+            updateMeasurment(name, 'i');
+            m_interestHistory.erase(name);
+            }
+        print_map(m_interestHistory, 'i');
         // });
 
     }
 
     time::milliseconds entryLifetime = data.getFreshnessPeriod();
     NFD_LOG_INFO("Erasing the data from the map in : " << entryLifetime); 
-    scheduler::EventId eventId;
-    eventId = getScheduler().schedule(entryLifetime, [=]  {
-                    auto temp_itr = m_dataHistory.find(name);
-                    if (temp_itr != m_dataHistory.end()) {
-                        updateMeasurment(name, 'd', getDuplicateCount(name, 'd'));
-                        m_dataHistory.erase(name); //cannot use above ** it ** because of index changes and memory leak  
-                    }
-        });
+    setUpdateExpiration(entryLifetime, name, 'd');
+}
 
-    name.appendNumber(1); //1 for data
-    itr_timer = m_objectExpirationTimer.find(name);
+void
+MulticastSuppression::setUpdateExpiration(time::milliseconds entryLifetime, Name name, char type)
+{
+  auto vec = getRecorder(type);
+  auto eventId = getScheduler().schedule(entryLifetime, [=]  {
+                auto temp_itr = vec->find(name);
+                if (temp_itr != vec->end())
+                      {
+                        //  record interest into moving average
+                        updateMeasurment(name,  'i');
+                        vec->erase(name);
+                      }
+                  });
+
+    name =  (type == 'i') ? name.appendNumber(0) : name.appendNumber(1);
+    auto itr_timer = m_objectExpirationTimer.find(name);
     if (itr_timer != m_objectExpirationTimer.end()) {
-            NFD_LOG_INFO("Updating timer for data");
+            NFD_LOG_INFO("Updating timer for name: " << name << "type: " << type);
             itr_timer->second.cancel();
             itr_timer->second = eventId;
         }
@@ -137,61 +125,66 @@ MulticastSuppression::print_map(std::map <Name, int> _map, char type)
 
 // EMA section
 // objectName granularity is (-1) name component
+EMAMeasurments::EMAMeasurments(Name name, double expMovingAverageDc = 0.0, int lastDuplicateCount = 0)
+: name(name)
+, expMovingAverageDc (expMovingAverageDc)
+, lastDuplicateCount (lastDuplicateCount)
+{
+}
+
 void
-MulticastSuppression::updateMeasurment(Name name, char type, int duplicateCount)
+MulticastSuppression::updateMeasurment(Name name, char type)
 {
-  std::map <Name, Measurments> *vec;
-  vec = (type =='i') ? &m_EMA_interest : &m_EMA_data;
+    auto vec = getEMARecorder(type);
+    auto duplicateCount = getDuplicateCount(name, type);
+    auto it = vec->find(name);
+    if (it == vec->end())
+    {
+        EMAMeasurments* temp = new EMAMeasurments(name, duplicateCount, duplicateCount); // create a measurment object and store; 
+        // NFD_LOG_INFO ("if: Moving average for type: " <<  type<<  " name: " << name << "=" << it->second.expMovingAverageDc );
+        auto expirationId = getScheduler().schedule(MEASURMENT_LIFETIME, [=]  {
+                                        auto temp_itr = vec->find(name);
+                                        if (temp_itr != vec->end())
+                                            vec->erase(name);
+                                    });
+        temp->setEMAExpiration(expirationId);
+        vec->emplace(name, temp);
+    }
+    else
+    {
+    //     NFD_LOG_INFO ("else: Moving average for type: " << type << " name: " << name << "=" << m.expMovingAverageDc );
+        it->second->getEMAExpiration().cancel();
+        auto expirationId = getScheduler().schedule(MEASURMENT_LIFETIME, [=]  {
+                                                        auto temp_itr = vec->find(name);
+                                                        if (temp_itr != vec->end())
+                                                            vec->erase(name);
+        });
+        it->second->setEMAExpiration(expirationId);
+        it->second->setLatestDuplicateCount(duplicateCount);
+        it->second->addUpdateEMA(duplicateCount);
+    }
 
-auto it = vec->find(name);
-if (it != vec->end())
-{ 
-    addUpdateEMA(it->second, duplicateCount);
-    // update expiration time
-    NFD_LOG_INFO ("if: Moving average for type: " <<  type<<  " name: " << name << "=" << it->second.expMovingAverageDc );
-    auto eventId = getScheduler().schedule(MEASURMENT_LIFETIME, [=]  {
-                    auto temp_itr = vec->find(name);
-                    if (temp_itr != vec->end())
-                        vec->erase(name);
-     });
-     it->second.expirationId.cancel();
-     it->second.expirationId = eventId;
 }
-else
+/*
+// we compute exponential moving average to git higher preference to recent data
+EMA = Dt ;duplicate count if t = 1
+EMA  = alpha*Dt + (1 - alpha) * EMA t-1
+*/
+void
+EMAMeasurments::addUpdateEMA(int duplicateCount)
 {
-    Measurments m;
-    // if no records, moving average = duplicateCount
-    m.expMovingAverageDc = duplicateCount;
-    // addUpdateEMA(m, duplicateCount); 
-    NFD_LOG_INFO ("else: Moving average for type: " << type << " name: " << name << "=" << m.expMovingAverageDc );
-    auto eventId = getScheduler().schedule(MEASURMENT_LIFETIME, [=]  {
-                    auto temp_itr = vec->find(name);
-                    if (temp_itr != vec->end())
-                        vec->erase(name);
-     });
-    m.expirationId = eventId; 
-    vec->emplace(name, m);
+    this->expMovingAverageDc =  DISCOUNT_FACTOR*duplicateCount 
+                                                + (1 - DISCOUNT_FACTOR)*this->expMovingAverageDc;
 }
-}
-    /*
-    // we compute exponential moving average to git higher preference to recent data
-    EMA = Dt ;duplicate count if t = 1
-    EMA  = alpha*Dt + (1 - alpha) * EMA t-1 
-  */
-  void
-  MulticastSuppression::addUpdateEMA(Measurments& m, int duplicateCount)
-  {
-    m.expMovingAverageDc =  DISCOUNT_FACTOR*duplicateCount 
-                                                    + (1 - DISCOUNT_FACTOR)*m.expMovingAverageDc;
-  }
 
 
+// sum the average for higher prefix granularity
+// for example EMA for /a/001, /a/002 will be sum and returned
+//  this function will get the EMA for all the name matching "the prefix granularity",  and returns the average
 float
-MulticastSuppression::getEMA(Name prefix, char type)
+MulticastSuppression::getMovingAverage(Name prefix, char type)
 {
-    // this will sum the average for higher granular prefix
-    // for example EMA for /a/001, /a/002 will be sum and returned
-    std::map <Name, Measurments> *vec;
+    std::map <Name, EMAMeasurments*> *vec;
     vec = (type =='i') ? &m_EMA_interest : &m_EMA_data;
 
     float sum = 0.0;
@@ -199,7 +192,7 @@ MulticastSuppression::getEMA(Name prefix, char type)
     for (auto it = vec->lower_bound(prefix);
     it != std::end(*vec) && it->first.compare(0, prefix.size(), prefix) == 0; ++it)
     {
-        sum += it->second.expMovingAverageDc;
+        sum += it->second->getEMA();
         count++;
     }
     return (sum == 0.0)? sum : sum/count;

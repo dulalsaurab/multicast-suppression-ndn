@@ -8,11 +8,48 @@ namespace nfd {
 namespace fw {
 namespace ams {
 
-struct Measurments
+class EMAMeasurments
 {
+
+public:
+
+  EMAMeasurments(Name name, double expMovingAverageDc, int lastDuplicateCount);
+
+  void
+  addUpdateEMA(int duplicateCount);
+
+  scheduler::EventId&
+  getEMAExpiration()
+  {
+    return this->expirationId;
+  }
+  void
+  setEMAExpiration(scheduler::EventId& expirationId)
+  {
+    this->expirationId = expirationId;
+  }
+
+  float
+  getEMA()
+  {
+    return this->expMovingAverageDc;
+  }
+
+  void
+  setLatestDuplicateCount(int duplicateCount)
+  {
+    this->lastDuplicateCount = duplicateCount;
+  }
+
+
+private:
+  Name name;
   double expMovingAverageDc;
   scheduler::EventId expirationId;
+  int lastDuplicateCount; // not sure if needed, lets have it here for now
+
 };
+
 
 class MulticastSuppression
 {
@@ -34,11 +71,16 @@ public:
     return 0;
   }
 
-  std::map<Name, int>
+  std::map<Name, int>*
   getRecorder(char type)
   {
-    if (type == 'i') return m_interestHistory;
-    else return m_dataHistory;
+    return (type == 'i') ? &m_interestHistory : &m_dataHistory;
+  }
+
+  std::map <Name, EMAMeasurments* >*
+  getEMARecorder(char type)
+  {
+    return (type =='i') ? &m_EMA_interest : &m_EMA_data;
   }
 
   // below functions can be merged to one
@@ -62,27 +104,25 @@ getRandTime()
     return time::milliseconds(0 + (std::rand() % (100)));
   }
 
-  void
-  print_map(std::map <Name, int> _map, char type);
+void
+print_map(std::map <Name, int> _map, char type);
 
+void
+updateMeasurment(Name name, char type);
 
-  void
-  addUpdateEMA(Measurments& m, int duplicateCount);
+float
+getMovingAverage(Name prefix, char type);
 
-  // EMA code
-  void
-  updateMeasurment(Name name, char type, int duplicateCount);
-
-  float
-  getEMA(Name name, char type);
-
+// set interest or data expiration
+void
+setUpdateExpiration(time::milliseconds entryLifetime, Name name, char type);
 
 private:
     std::map <Name, int> m_dataHistory;
     std::map <Name, int> m_interestHistory;
     std::map <Name, scheduler::EventId> m_objectExpirationTimer;
-    std::map <Name, Measurments> m_EMA_interest;
-    std::map <Name, Measurments> m_EMA_data;
+    std::map <Name, EMAMeasurments* > m_EMA_interest;
+    std::map <Name, EMAMeasurments* > m_EMA_data;
 
 };
 } //namespace ams
