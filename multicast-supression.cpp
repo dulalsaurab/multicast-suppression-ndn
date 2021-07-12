@@ -62,7 +62,6 @@ MulticastSuppression::recordInterest(const Interest interest)
 
     NFD_LOG_INFO("Erasing the interest from the map in : " << entryLifetime); 
     setUpdateExpiration(entryLifetime, name, 'i');
-    // print_map (m_interestHistory, 'i');
 }
 
 void
@@ -90,15 +89,11 @@ MulticastSuppression::recordData(Data data)
         NFD_LOG_INFO("Data overheard, deleting interest " <<name << " from the map");
         itr_timer->second.cancel();
         // schedule deletion now
-        // getScheduler().schedule(0_ms, [=]  {
         if (m_interestHistory.count(name) > 0) {
-            // need to call moving average
             updateMeasurement(name, 'i');
             m_interestHistory.erase(name);
             NFD_LOG_INFO("Interest successfully deleted from the history " <<name);
             }
-        // print_map(m_interestHistory, 'i');
-        // });
     }
     time::milliseconds entryLifetime = data.getFreshnessPeriod();
     NFD_LOG_INFO("Erasing the data from the map in : " << entryLifetime); 
