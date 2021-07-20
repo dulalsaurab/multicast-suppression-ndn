@@ -7,6 +7,8 @@
 #include "common/logger.hpp"
 #include <algorithm>
 #include <numeric>
+// #include <math>
+#include<stdio.h>
 
 namespace nfd {
 namespace fw {
@@ -17,14 +19,28 @@ NFD_LOG_INIT(MulticastSuppression);
 float DISCOUNT_FACTOR = 0.8;
 const time::milliseconds MEASUREMENT_LIFETIME = 300_s; // 5 minutes 
 
+/* 
+  History Based Probabilistic Backoff Algorithm 
+  (https://thescipub.com/pdf/ajeassp.2012.230.236.pdf)
+  Contention Window (CW)
+*/
+// in miliseconds ms
+const double CWmin = 1.0; 
+const double CWmax = 250.0;
+const int successfulTransmission = 1; // S, we are taking 1 for now
+
 // EMA section
 // objectName granularity is (-1) name component
-EMAMeasurements::EMAMeasurements(Name name, double expMovingAverageDc = 0.0, int lastDuplicateCount = 0)
+EMAMeasurements::EMAMeasurements(Name name, double expMovingAverage = 1.0, int lastDuplicateCount = 0, double delayTime = 0.0)
 : name(name)
-, expMovingAverageDc (expMovingAverageDc)
+, expMovingAveragePrev (expMovingAverage)
+, expMovingAverageCurrent (expMovingAverage)
 , lastDuplicateCount (lastDuplicateCount)
+, delayTime(delayTime)
 {
 }
+
+// EMAMeasurements::~EMAMeasurements() = default; // destructor
 
 /*
  we compute exponential moving average to give higher preference to the most recent interest/data
@@ -34,10 +50,34 @@ EMAMeasurements::EMAMeasurements(Name name, double expMovingAverageDc = 0.0, int
 void
 EMAMeasurements::addUpdateEMA(int duplicateCount)
 {
-    NFD_LOG_INFO("moving average before: " << this->expMovingAverageDc);
-    this->expMovingAverageDc =  DISCOUNT_FACTOR*duplicateCount
-                                                       + (1 - DISCOUNT_FACTOR)*this->expMovingAverageDc;
-     NFD_LOG_INFO("moving average after: " << this->expMovingAverageDc << ": duplicate count"<<  duplicateCount);
+    
+    NFD_LOG_INFO("moving average before: " << this->expMovingAverageCurrent);
+    this->expMovingAveragePrev = this->expMovingAverageCurrent;
+    this->expMovingAverageCurrent =  DISCOUNT_FACTOR*duplicateCount
+                                                       + (1 - DISCOUNT_FACTOR)*this->expMovingAveragePrev;
+     NFD_LOG_INFO("moving average after: " << this->expMovingAverageCurrent << ": duplicate count"<<  duplicateCount);
+    updateDelayTime();
+}
+
+void
+EMAMeasurements::updateDelayTime()
+{
+    float alpha;
+    auto delayTimePrev = this->delayTime;
+    float collionProbability = this->expMovingAverageCurrent/(1+this->expMovingAverageCurrent);   // this can be 0/0
+    if (this->expMovingAverageCurrent > this->expMovingAveragePrev)
+    {
+        // number of duplicate increased
+        alpha = -1 + collionProbability*2;
+        this->delayTime = std::min(CWmax-1, delayTimePrev*pow(2, alpha)); 
+    }
+    else
+    {
+        // number of collision decreased
+        alpha = -1 + (1 - collionProbability)*2;
+        this->delayTime = std::max(CWmin+1, delayTimePrev*pow(2, alpha));
+    }
+    NFD_LOG_INFO("New delay time set: " << this->delayTime);
 }
 
 void
@@ -108,6 +148,7 @@ MulticastSuppression::setUpdateExpiration(time::milliseconds entryLifetime, Name
           //  record interest into moving average
           updateMeasurement(name,  type);
           vec->erase(name);
+           NFD_LOG_INFO("Name: " << name << " type: " << type << " expired, and deleted from the instant history");
           }
         });
 
@@ -154,6 +195,7 @@ MulticastSuppression::updateMeasurement(Name name, char type)
                                     });
         auto& emaEntry = vec->emplace(name, std::make_shared<EMAMeasurements>(name, duplicateCount, duplicateCount)).first->second;
         emaEntry->setEMAExpiration(expirationId);
+        emaEntry->addUpdateEMA(duplicateCount);
     }
     else
     {
@@ -165,10 +207,10 @@ MulticastSuppression::updateMeasurement(Name name, char type)
                                         });
 
         it->second->setEMAExpiration(expirationId);
-        it->second->setLastDuplicateCount(duplicateCount);
+        it->second->setLastDuplicateCount(duplicateCount); // duplicate count doesnt make sense. EMA granularity is -1, 
+        // duplicateCount is of whole perfix, so lastDuplicate count will also be of the last name rather not of the -1 granular prefix
         it->second->addUpdateEMA(duplicateCount);
     }
-
 }
 
 // sum the average for higher prefix granularity
@@ -179,18 +221,15 @@ MulticastSuppression::getMovingAverage(Name name, char type)
 {
     auto vec = getEMARecorder(type);
     auto it = vec->find(name.getPrefix(-1)); //granularity -1
-    return (it != vec->end()) ?  it->second->getEMA() : 0.0 ;
+    return (it != vec->end()) ?  it->second->getEMACurrent() : 0.0 ;
+}
 
-    // return 0.0
-    // float sum = 0.0;
-    // int count = 0;
-    // for (auto it = vec->lower_bound(prefix); 
-    // it != std::end(*vec) && it->first.compare(0, prefix.size(), prefix) == 0; ++it)
-    // {
-    //     sum += it->second->getEMA();
-    //     count++;
-    // }
-    // return (sum == 0.0) ? sum : sum/count;
+time::milliseconds
+MulticastSuppression::getDelayTimer(Name name, char type)
+{
+    auto vec = getEMARecorder(type);
+    auto it = vec->find(name.getPrefix(-1)); //granularity -1
+    return (it != vec->end()) ?  it->second->getDelayTime() : getRandTime() ;
 }
 
 } //namespace ams

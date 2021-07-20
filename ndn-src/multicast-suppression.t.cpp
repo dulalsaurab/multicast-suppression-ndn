@@ -82,27 +82,27 @@ BOOST_FIXTURE_TEST_CASE(Basic, AMSFixture)
   auto interest = makeInterest(name);
 
   consumer1->getClientFace().expressInterest(*interest, nullptr, nullptr, nullptr);
-  this->advanceClocks(10_ms, 1_s);  
+  this->advanceClocks(10_ms, 1_s);
 
-  // we expect both C2 and P to receive the interest sent by consumer1. 
+  // we expect both C2 and P to receive the interest sent by consumer1.
   BOOST_CHECK_EQUAL(faceC1->getCounters().nOutInterests, 1);
-  BOOST_CHECK_EQUAL(faceP->getCounters().nInInterests, 1); 
-  BOOST_CHECK_EQUAL(faceC2->getCounters().nInInterests, 1); 
-  
+  BOOST_CHECK_EQUAL(faceP->getCounters().nInInterests, 1);
+  BOOST_CHECK_EQUAL(faceC2->getCounters().nInInterests, 1);
+
   // this interest should be suppressed because consumer2 have already overheard the first interest
-  consumer2->getClientFace().expressInterest(*interest, nullptr, nullptr, nullptr);  
-  this->advanceClocks(3_ms, 90_ms); 
+  consumer2->getClientFace().expressInterest(*interest, nullptr, nullptr, nullptr);
+  this->advanceClocks(3_ms, 90_ms);
   BOOST_CHECK_EQUAL(faceC2->getCounters().nOutInterests, 0);
 
   this->advanceClocks(10_ms, 3_s);
   //  at this stage both consumer c1, and c2 should get the data packet back
-  BOOST_CHECK_EQUAL(faceC1->getCounters().nInData, 1);  
-  BOOST_CHECK_EQUAL(faceC2->getCounters().nInData, 1);  
+  BOOST_CHECK_EQUAL(faceC1->getCounters().nInData, 1);
+  BOOST_CHECK_EQUAL(faceC2->getCounters().nInData, 1);
 
- // interest here is differnt than the previous one, but the prefix (component -1) is same so the EMA for the prefix will be computed  
+ // interest here is differnt than the previous one, but the prefix (component -1) is same so the EMA for the prefix will be computed
   interest = makeInterest(name.getPrefix(-1).append("test1"));
   consumer1->getClientFace().expressInterest(*interest, nullptr, nullptr, nullptr);
-  this->advanceClocks(10_ms, 2_ms); 
+  this->advanceClocks(10_ms, 2_ms);
   BOOST_CHECK_EQUAL(faceC1->getCounters().nOutInterests, 1);
 
 }

@@ -33,14 +33,14 @@ from minindn.util import MiniNDNWifiCLI, getPopen
 import random
 
 def sendFile(node, prefix, file):
-    info ("File published:", file)
+    info ("File published: {}\n".format(file))
     cmd = 'ndnputchunks {}/{} < {} > putchunks.log 2>&1 &'.format(prefix, "fname", file)
     node.cmd(cmd)
     # Sleep for appropriate time based on the file size
     sleep(5)
 
 def receiveFile(node, prefix, filename):
-    info ("Fething file: ", filename)
+    info ("Fething file: {} \n".format(filename))
     cmd = 'ndncatchunks {}/{} > {} 2> catchunks.log &'.format(prefix, "fname", filename)
     node.cmd(cmd)
 
@@ -48,24 +48,24 @@ if __name__ == '__main__':
     setLogLevel('info')
     ndnwifi = MinindnWifi()
     args = ndnwifi.args
-    testFile = "/home/mini-ndn/europa_bkp/mini-ndn/ndndump.txt"
+    testFile = "/home/mini-ndn/europa_bkp/mini-ndn/per_link_traffic.py"
     a = ndnwifi.net["sta1"]
     b = ndnwifi.net["sta2"]
     c = ndnwifi.net["sta3"]
-    d = ndnwifi.net["sta4"]
-    e = ndnwifi.net["sta5"]
+    # d = ndnwifi.net["sta4"]
+    # e = ndnwifi.net["sta5"]
 
     nodes = {"sta1" : "/file/temp1", "sta2":"b" , "sta3":"/file/temp2", "sta4":"d", "sta5":"e"}
     ndnwifi.start()
     info("Starting NFD")
     sleep(2)
-    nfds = AppManager(ndnwifi, ndnwifi.net.stations, Nfd, logLevel='INFO')
+    nfds = AppManager(ndnwifi, ndnwifi.net.stations, Nfd, logLevel='DEBUG')
 
     # start ping server at each node
     mcast = "224.0.23.170"
-    producers = [ndnwifi.net["sta1"], ndnwifi.net["sta3"]]
+    producers = [ndnwifi.net["sta1"]] #, ndnwifi.net["sta3"]]
     consumers = [y  for y in ndnwifi.net.stations if y.name not in [x.name for x in producers]]
-    
+
     for c in consumers:
         Nfdc.registerRoute (c, "/file", mcast)
 

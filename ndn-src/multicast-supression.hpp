@@ -12,7 +12,7 @@ class EMAMeasurements
 {
 
 public:
-  EMAMeasurements(Name name, double expMovingAverageDc, int lastDuplicateCount);
+  EMAMeasurements(Name name, double expMovingAverage, int lastDuplicateCount, double delayTime);
 
   void
   addUpdateEMA(int duplicateCount);
@@ -29,9 +29,15 @@ public:
   }
 
   float
-  getEMA()
+  getEMACurrent()
   {
-    return this->expMovingAverageDc;
+    return this->expMovingAverageCurrent;
+  }
+
+  float
+  getEMAPrev()
+  {
+    return this->expMovingAveragePrev;
   }
 
   void
@@ -40,9 +46,27 @@ public:
     this->lastDuplicateCount = duplicateCount;
   }
 
+  int
+  getLastDuplicateCount()
+  {
+    return this->lastDuplicateCount;
+  }
+
+  void
+  updateDelayTime();
+
+  time::milliseconds
+  getDelayTime()
+  {
+    time::milliseconds delayTime (static_cast<int>(this->delayTime));
+    return delayTime;
+  }
+
 private:
   Name name;
-  double expMovingAverageDc;
+  double expMovingAveragePrev;
+  double expMovingAverageCurrent;
+  double delayTime;
   scheduler::EventId expirationId;
   int lastDuplicateCount; // not sure if needed, lets have it here for now
 };
@@ -97,7 +121,7 @@ public:
 time::milliseconds
 getRandTime()
   {
-    return time::milliseconds(0 + (std::rand() % (100)));
+    return time::milliseconds(10 + (std::rand() % (20)));
   }
 
 void
@@ -112,6 +136,9 @@ getMovingAverage(Name prefix, char type);
 // set interest or data expiration
 void
 setUpdateExpiration(time::milliseconds entryLifetime, Name name, char type);
+
+time::milliseconds
+getDelayTimer(Name name, char type);
 
 private:
     std::map <Name, int> m_dataHistory;
