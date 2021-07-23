@@ -20,7 +20,7 @@ float DISCOUNT_FACTOR = 0.6;
 const time::milliseconds MEASUREMENT_LIFETIME = 300_s; // 5 minutes 
 
 // in miliseconds ms
-const double minSuppressionTime = 5.0; 
+const double minSuppressionTime = 1.0; 
 const double maxSuppressionTime= 100.0;
 const int successfulTransmission = 1; // S, we are taking 1 for now
 
@@ -227,7 +227,7 @@ MulticastSuppression::getDelayTimer(Name name, char type)
 {
     auto vec = getEMARecorder(type);
     auto it = vec->find(name.getPrefix(-1)); //granularity -1
-    return (it != vec->end()) ?  it->second->getCurrentSuppressionTime() : getRandTime() ;
+    return (it != vec->end()) ?  it->second->getCurrentSuppressionTime() : 0_ms ; // if no measurement, forward immediately (observation phase)
 }
 
 } //namespace ams
