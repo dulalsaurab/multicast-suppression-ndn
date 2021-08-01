@@ -37,7 +37,7 @@ def sendFile(node, prefix, file):
     cmd = 'ndnputchunks {}/{} < {} > putchunks.log 2>&1 &'.format(prefix, "fname", file)
     node.cmd(cmd)
     # Sleep for appropriate time based on the file size
-    sleep(5)
+    sleep(10)
 
 def receiveFile(node, prefix, filename):
     info ("Fething file: {} \n".format(filename))
@@ -68,12 +68,13 @@ if __name__ == '__main__':
 
     for c in consumers:
         Nfdc.registerRoute (c, "/file", mcast)
+        sleep(1)
 
     for p in producers:
         sendFile(p, nodes[p.name], testFile)
 
     for c in consumers:
-        sleep(random.uniform(0, 1))
+        sleep(0.1)
         for p in producers:
             receiveFile(c, nodes[p.name], p.name+".txt")
 
