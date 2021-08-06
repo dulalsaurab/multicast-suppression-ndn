@@ -7,11 +7,11 @@
 #include "common/logger.hpp"
 #include <algorithm>
 #include <numeric>
-// #include <math>
 #include<stdio.h>
+#include <random>
 
 namespace nfd {
-namespace fw {
+namespace face {
 namespace ams {
 
 NFD_LOG_INIT(MulticastSuppression);
@@ -20,19 +20,26 @@ float DISCOUNT_FACTOR = 0.6;
 const time::milliseconds MEASUREMENT_LIFETIME = 300_s; // 5 minutes 
 
 // in miliseconds ms
-const double minSuppressionTime = 1.0; 
+const double minSuppressionTime = 5.0; 
 const double maxSuppressionTime= 100.0;
 const int successfulTransmission = 1; // S, we are taking 1 for now
 
 // EMA section
 // objectName granularity is (-1) name component
-EMAMeasurements::EMAMeasurements(Name name, double expMovingAverage = 1.0, int lastDuplicateCount = 0, double delayTime = 0.0)
+bool EMAMeasurements::seeded = false;
+EMAMeasurements::EMAMeasurements(Name name, double expMovingAverage = 1.0, int lastDuplicateCount = 0, double delayTime = 1.0)
 : m_name(name)
 , m_expMovingAveragePrev (expMovingAverage)
 , m_expMovingAverageCurrent (expMovingAverage)
 , m_averageDuplicateCount (lastDuplicateCount) // need to change: average for all the name, e.g. name (/a/b, = 2 /a/c = 2), /a = (2+2)/2 = 2 
 , m_currentSuppressionTime(delayTime)
 {
+    if (!seeded) {
+        unsigned seed = std::chrono::system_clock::now().time_since_epoch().count();
+        NFD_LOG_INFO ("seeded " << seed);
+        std::srand(seed);
+        seeded = true;
+    }
 }
 /*
  we compute exponential moving average to give higher preference to the most recent interest/data
@@ -43,11 +50,11 @@ void
 EMAMeasurements::addUpdateEMA(int duplicateCount)
 {
     
-    NFD_LOG_INFO("moving average before: " << this->m_expMovingAverageCurrent);
-    this->m_expMovingAveragePrev = this->m_expMovingAverageCurrent;
-    this->m_expMovingAverageCurrent =  DISCOUNT_FACTOR*duplicateCount
-                                                       + (1 - DISCOUNT_FACTOR)*this->m_expMovingAveragePrev;
-     NFD_LOG_INFO("moving average after: " << this->m_expMovingAverageCurrent << ": duplicate count"<<  duplicateCount);
+    NFD_LOG_INFO("moving average before: " << m_expMovingAverageCurrent);
+    m_expMovingAveragePrev = m_expMovingAverageCurrent;
+    m_expMovingAverageCurrent =  DISCOUNT_FACTOR*duplicateCount
+                                                       + (1 - DISCOUNT_FACTOR)*m_expMovingAveragePrev;
+     NFD_LOG_INFO("moving average after: " << m_expMovingAverageCurrent << "\n duplicate count "<<  duplicateCount);
     updateDelayTime();
 }
 
@@ -60,28 +67,39 @@ EMAMeasurements::addUpdateEMA(int duplicateCount)
 void
 EMAMeasurements::updateDelayTime()
 {
-    float alpha;
-    auto previousSuppressionTime = this->m_currentSuppressionTime;
-    float collionProbability = this->m_expMovingAverageCurrent/(1+this->m_expMovingAverageCurrent);   // this can be 0/0
-    if (this->m_expMovingAverageCurrent > this->m_expMovingAveragePrev)
-    {
-        // number of duplicate increased
-        alpha = -1 + collionProbability*2;
-        this->m_currentSuppressionTime = std::min(maxSuppressionTime-1, previousSuppressionTime*pow(2, alpha)); 
-    }
-    else
-    {
-        // number of collision decreased
-        alpha = -1 + (1 - collionProbability)*2;
-        this->m_currentSuppressionTime = std::max(minSuppressionTime+1, previousSuppressionTime*pow(2, alpha));
-    }
+    auto collionProbability = m_expMovingAverageCurrent/(1+m_expMovingAverageCurrent);   // this can be 0/0
+    // auto discountedCollisionProb =  DISCOUNT_FACTOR*collionProbability;
+    // try
+    // {
+    NFD_LOG_INFO("collionProbability: "<< collionProbability);
+    auto temp = std::min(maxSuppressionTime, 
+                                       m_currentSuppressionTime*pow(2, m_expMovingAverageCurrent));
+    // source: https://aws.amazon.com/blogs/architecture/exponential-backoff-and-jitter/
+    m_currentSuppressionTime = 0.3*temp +  std::rand() % (static_cast<int>(temp*0.7) + 1); //added +1 to avoid /0 case 
+ 
+    //  need to think more about the second component and what to multiply with, now lets use collisionProb
+    // float alpha;
+    // auto previousSuppressionTime = this->m_currentSuppressionTime;
+    // float collionProbability = this->m_expMovingAverageCurrent/(1+this->m_expMovingAverageCurrent);   // this can't be 0/0
+    // if (this->m_expMovingAverageCurrent < 2)
+    // {
+    //     // number of duplicate is in acceptable range
+    //     alpha = -1 + collionProbability*2;
+    //     this->m_currentSuppressionTime = std::min(maxSuppressionTime-1, previousSuppressionTime*pow(2, alpha)); 
+    // }
+    // else
+    // {
+    //     // number of collision decreased
+    //     alpha = -1 + (1 - collionProbability)*2;
+    //     this->m_currentSuppressionTime = std::max(minSuppressionTime+1, previousSuppressionTime*pow(2, alpha));
+    // }
     NFD_LOG_INFO("New suppression time set: " << this->m_currentSuppressionTime);
 }
 
 void
 MulticastSuppression::recordInterest(const Interest interest)
 {
-    auto name = interest.getName(); //.getPrefix(-1); //removing nonce
+    auto name = interest.getName();
     NFD_LOG_INFO("Interest to check/record" << name);
     auto it = m_interestHistory.find(name);
     if (it == m_interestHistory.end()) // check if interest is already in the map
@@ -227,9 +245,9 @@ MulticastSuppression::getDelayTimer(Name name, char type)
 {
     auto vec = getEMARecorder(type);
     auto it = vec->find(name.getPrefix(-1)); //granularity -1
-    return (it != vec->end()) ?  it->second->getCurrentSuppressionTime() : 0_ms ; // if no measurement, forward immediately (observation phase)
+    return (it != vec->end()) ?  it->second->getCurrentSuppressionTime() : getRandomTime(); // if no measurement, forward immediately (observation phase)
 }
 
 } //namespace ams
-} //namespace fw
+} //namespace face
 } //namespace nfd

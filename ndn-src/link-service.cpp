@@ -76,6 +76,7 @@ LinkService::sendInterest(const Interest& interest)
                                     << " = " << m_multicastSuppression.getMovingAverage(interest.getName(), 'i'));
   NFD_LOG_INFO ("Interest " <<  interest.getName() << " not in flight, waiting" << suppressionTime << "before forwarding");
 
+  
   auto eventId = getScheduler().schedule(suppressionTime, [this, interest] {
     // finally when time comes for forwarding, check if interest was received during the wait, if so drop the forwarding  
     if (m_multicastSuppression.interestInflight(interest)) {
@@ -107,10 +108,23 @@ LinkService::sendData(const Data& data)
     from different node, additionally it will also trigger multiple retransmission from the node
     that didn't received the data due to suppression. This might not happen if unsolicated data are
     cached, but the node that's supposed to send the data can't gurantee it.
+
+    data sending should wait before forwarding, during this wait time if another data is overheard, need to drop the forwarding
+    wait time should be determined based on the number of duplicate overhearing
   */
   //  for now, lets wait for some time before forwarding, if overheard, drop the reply
   auto suppressionTime = m_multicastSuppression.getDelayTimer(data.getName(), 'd');
-  auto eventId = getScheduler().schedule(suppressionTime, [this, data] {
+  auto currDuplicateCount = m_multicastSuppression.getDuplicateCount(data.getName(), 'd');
+  NFD_LOG_INFO("Waiting : " << suppressionTime<< "ms before sending data packet");
+  auto eventId = getScheduler().schedule(suppressionTime, [this, data, currDuplicateCount] {
+    // drop data forwarding if heard during the wait
+    if (currDuplicateCount < m_multicastSuppression.getDuplicateCount(data.getName(), 'd'))
+    {
+      //  data overheard, drop the forwarding
+     NFD_LOG_INFO("Data: " << data.getName() << " was overheard during the wait, drop the forwarding ");
+     return; // might need to handle properly
+    }
+
     NFD_LOG_INFO("Sending data finally, via multicast face " << data.getName());
     ++this->nOutData;
     doSendData(data);
@@ -151,8 +165,9 @@ LinkService::receiveData(const Data& data, const EndpointId& endpoint)
   if (this->getFace()->getLinkType() == ndn::nfd::LINK_TYPE_MULTI_ACCESS)
   {
     NFD_LOG_INFO("Multicast data received: " << data.getName());
-     m_multicastSuppression.recordData(data);
+    m_multicastSuppression.recordData(data);
   }
+
   ++this->nInData;
   // record multicast data
   afterReceiveData(data, endpoint);

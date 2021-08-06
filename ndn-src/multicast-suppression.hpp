@@ -1,11 +1,12 @@
-#include "face-table.hpp"
-#include "forwarder-counters.hpp"
-
-#ifndef NFD_DAEMON_FW_AMS_MULTICAST_SUPPRESSION_HPP
-#define NFD_DAEMON_FW_AMS_MULTICAST_SUPPRESSION_HPP
+// #include "face-table.hpp"
+// #include "forwarder-counters.hpp"
+#include "core/common.hpp"
+#include <chrono>
+#ifndef NFD_DAEMON_FACE_AMS_MULTICAST_SUPPRESSION_HPP
+#define NFD_DAEMON_FACE_AMS_MULTICAST_SUPPRESSION_HPP
 
 namespace nfd {
-namespace fw {
+namespace face {
 namespace ams {
 
 class EMAMeasurements
@@ -69,6 +70,10 @@ private:
   double m_currentSuppressionTime;
   scheduler::EventId m_expirationId;
   int m_averageDuplicateCount; // not sure if needed, lets have it here for now
+  const unsigned seed = std::chrono::system_clock::now().time_since_epoch().count();
+  static bool seeded;
+  // ndn::random::RandomNumberEngine& m_rng;
+  // std::uniform_int_distribution<int> m_rangeUniformRandom;
 };
 
 
@@ -119,9 +124,9 @@ public:
   }
 
 time::milliseconds
-getRandTime()
+getRandomTime()
   {
-    return time::milliseconds(10 + (std::rand() % (20)));
+    return time::milliseconds(1 + (std::rand() % (10)));
   }
 
 void
@@ -148,7 +153,7 @@ private:
     std::map<Name, std::shared_ptr<EMAMeasurements>> m_EMA_interest;
 };
 } //namespace ams
-} //namespace fw
+} //namespace face
 } //namespace nfd
 
-#endif // NFD_DAEMON_FW_SUPPRESSION_STRATEGY_HPP
+#endif // NFD_DAEMON_FACE_SUPPRESSION_STRATEGY_HPP
