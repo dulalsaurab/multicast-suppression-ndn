@@ -48,12 +48,20 @@ if __name__ == '__main__':
     setLogLevel('info')
     ndnwifi = MinindnWifi()
     args = ndnwifi.args
+
     testFile = "/home/mini-ndn/europa_bkp/mini-ndn/ndndump.txt"
     a = ndnwifi.net["sta1"]
     b = ndnwifi.net["sta2"]
     c = ndnwifi.net["sta3"]
     d = ndnwifi.net["sta4"]
-    e = ndnwifi.net["sta5"]
+    # e = ndnwifi.net["sta5"]
+
+    i = 1024
+    for node in ndnwifi.net.stations:
+        i = i*2
+        cmd = "echo {} > {}".format(i, "seed")
+        node.cmd(cmd)
+    sleep(1)
 
     nodes = {"sta1" : "/file/temp1", "sta2":"b" , "sta3":"/file/temp2", "sta4":"d", "sta5":"e"}
     ndnwifi.start()
@@ -74,7 +82,7 @@ if __name__ == '__main__':
         sendFile(p, nodes[p.name], testFile)
 
     for c in consumers:
-        sleep(random.uniform(0, 1) % 0.2) # sleep at max 200ms
+        # sleep(random.uniform(0, 1) % 0.02) # sleep at max 20ms
         for p in producers:
             receiveFile(c, nodes[p.name], p.name+".txt")
 

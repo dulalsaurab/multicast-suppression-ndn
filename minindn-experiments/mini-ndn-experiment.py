@@ -131,7 +131,7 @@ def runExperiment():
     b = ndnwifi.net["sta2"]
     c = ndnwifi.net["sta3"]
     d = ndnwifi.net["sta4"]
-    e = ndnwifi.net["sta5"]
+    # e = ndnwifi.net["sta5"]
     
     nodes = {"sta1" : "a", "sta2":"b" , "sta3":"c", "sta4":"d", "sta5":"e"}
     ndnwifi.start()
