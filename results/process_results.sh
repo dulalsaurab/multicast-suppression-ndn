@@ -3,6 +3,7 @@
 result_folder=$1
 
 result_dir="/tmp/minindn"
+#result_dir=$2
 
 mkdir -p $result_folder && cd $result_folder
 
@@ -34,20 +35,20 @@ counter=1
 
 for i in `ls $result_dir/*/log/nfd.log`
  do
-  echo "timestamp dup ema st" > $counter.interest
-  cat $i | grep "Creating\|Updating EMA" -A 2 | grep "type: i" -A 2 | grep Dup | awk '{print $1 "," $6}' > $counter.dup
-  cat $i | grep "Creating\|Updating EMA" -A 2 | grep "type: i" -A 2 | grep before | awk '{print $9 "," $12}' > $counter.st
-  echo "$(tail -n +2 $counter.dup)" > $counter.dup
-  awk -F "," 'p{print 1000*($0-p);}{p=$0}' $counter.dup | awk '{total += $0; $0=total}1' | sed "1s/.*/0/g" > $counter.ts
-  awk -F "," 'FNR==NR{a[NR]=$1;next}{$1=a[FNR]}1' $counter.ts $counter.dup | awk '{print $1 "," $2}' > $counter.dup-ts
-  paste -d "," $counter.dup-ts $counter.st >> $counter.interest
+  echo "dup ema st" > $counter.interest
+  cat $i | grep "Updating EMA" -A 1 | grep "type: i" -A 1 | grep before | awk '{print $12","$9","$15}' >> $counter.interest
+  # cat $i | grep "Updating EMA" -A 2 | grep "type: i" -A 2 | grep before | awk '{print $9 "," $12}' > $counter.st
+  #echo "$(tail -n +2 $counter.dup)" > $counter.dup
+  #awk -F "," 'p{print 1000*($0-p);}{p=$0}' $counter.dup | awk '{total += $0; $0=total}1' | sed "1s/.*/0/g" > $counter.ts
+  #awk -F "," 'FNR==NR{a[NR]=$1;next}{$1=a[FNR]}1' $counter.ts $counter.dup | awk '{print $1 "," $2}' > $counter.dup-ts
+  #paste -d "," $counter.dup-ts $counter.st >> $counter.interest
 
-  echo "timestamp dup ema st" > $counter.data
-  cat $i | grep "Creating\|Updating EMA" -A 2 | grep "type: d" -A 2 | grep Dup | awk '{print $1 "," $6}' > $counter.dup
-  cat $i | grep "Creating\|Updating EMA" -A 2 | grep "type: d" -A 2 | grep before | awk '{print $9 "," $12}' > $counter.st
-  awk -F "," 'p{print 1000*($0-p);}{p=$0}' $counter.dup | awk '{total += $0; $0=total}1' | sed "1s/.*/0/g" > $counter.ts
-  awk -F "," 'FNR==NR{a[NR]=$1;next}{$1=a[FNR]}1' $counter.ts $counter.dup | awk '{print $1 "," $2}' > $counter.dup-ts
-  paste -d "," $counter.dup-ts $counter.st >> $counter.data
+  echo "dup ema st" > $counter.data
+  cat $i | grep "Updating EMA" -A 1 | grep "type: d" -A 1 | grep before | awk '{print $12","$9","$15}' >> $counter.data
+  #cat $i | grep "Updating EMA" -A 2 | grep "type: d" -A 2 | grep before | awk '{print $9 "," $12}' > $counter.st
+  #awk -F "," 'p{print 1000*($0-p);}{p=$0}' $counter.dup | awk '{total += $0; $0=total}1' | sed "1s/.*/0/g" > $counter.ts
+  #awk -F "," 'FNR==NR{a[NR]=$1;next}{$1=a[FNR]}1' $counter.ts $counter.dup | awk '{print $1 "," $2}' > $counter.dup-ts
+  #paste -d "," $counter.dup-ts $counter.st >> $counter.data
 
   cat $i | grep "and type: i" | awk '{print $13}' > $counter.rst_i
   cat $i | grep "and type: d" | awk '{print $13}' > $counter.rst_d
@@ -59,7 +60,9 @@ for i in `ls $result_dir/*/log/nfd.log`
   cat $i | grep "Suppression timer for name: " | grep "type: i" | awk '{print $13}' > int_sch_st
   paste -d "," int_sch_ts_seg int_seg_sent int_seg_drop int_sch_st > $counter.int_seg_sent_drop_st
 
-  rm $counter.dup-ts $counter.dup $counter.st $counter.ts  int_sch_ts_seg int_seg_drop int_seg_sent int_sch_st
+  #rm $counter.dup-ts $counter.dup $counter.st $counter.ts  int_sch_ts_seg int_seg_drop int_seg_sent int_sch_st
+  rm int_sch_ts_seg int_seg_drop int_seg_sent int_sch_st
+
   counter=$((counter+1))
 done
 

@@ -23,247 +23,205 @@
  * NFD, e.g., in COPYING.md file.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef NFD_DAEMON_FACE_LINK_SERVICE_HPP
-#define NFD_DAEMON_FACE_LINK_SERVICE_HPP
-
-#include "face-common.hpp"
-#include "transport.hpp"
-#include "common/counter.hpp"
-#include <ndn-cxx/util/scheduler.hpp>
-#include "multicast-suppression.hpp"
-
-#include "common/global.hpp"
-// #include "common/logger.hpp"
+#include "link-service.hpp"
+#include "face.hpp"
 
 namespace nfd {
 namespace face {
 
-/** \brief counters provided by LinkService
- *  \note The type name 'LinkServiceCounters' is implementation detail.
- *        Use 'LinkService::Counters' in public API.
- */
-class LinkServiceCounters
+NFD_LOG_INIT(LinkService);
+
+LinkService::LinkService()
+  : m_face(nullptr)
+  , m_transport(nullptr)
 {
-public:
-  /** \brief count of incoming Interests
-   */
-  PacketCounter nInInterests;
-
-  /** \brief count of outgoing Interests
-   */
-  PacketCounter nOutInterests;
-
-  /** \brief count of Interests dropped by reliability system for exceeding allowed number of retx
-   */
-  PacketCounter nInterestsExceededRetx;
-
-  /** \brief count of incoming Data packets
-   */
-  PacketCounter nInData;
-
-  /** \brief count of outgoing Data packets
-   */
-  PacketCounter nOutData;
-
-  /** \brief count of incoming Nacks
-   */
-  PacketCounter nInNacks;
-
-  /** \brief count of outgoing Nacks
-   */
-  PacketCounter nOutNacks;
-};
-
-/** \brief the upper part of a Face
- *  \sa Face
- */
-class LinkService : protected virtual LinkServiceCounters, noncopyable
-{
-public:
-  /** \brief counters provided by LinkService
-   */
-  typedef LinkServiceCounters Counters;
-
-public:
-  LinkService();
-
-  virtual
-  ~LinkService();
-
-  /** \brief set Face and Transport for LinkService
-   *  \pre setFaceAndTransport has not been called
-   */
-  void
-  setFaceAndTransport(Face& face, Transport& transport);
-
-  /** \return Face to which this LinkService is attached
-   */
-  const Face*
-  getFace() const;
-
-  /** \return Transport to which this LinkService is attached
-   */
-  const Transport*
-  getTransport() const;
-
-  /** \return Transport to which this LinkService is attached
-   */
-  Transport*
-  getTransport();
-
-  virtual const Counters&
-  getCounters() const;
-
-  virtual ssize_t
-  getEffectiveMtu() const;
-
-public: // upper interface to be used by forwarding
-  /** \brief Send Interest
-   *  \pre setTransport has been called
-   */
-  void
-  sendInterest(const Interest& interest);
-
-  /** \brief Send Data
-   *  \pre setTransport has been called
-   */
-  void
-  sendData(const Data& data);
-
-  /** \brief Send Nack
-   *  \pre setTransport has been called
-   */
-  void
-  sendNack(const ndn::lp::Nack& nack);
-
-  /** \brief signals on Interest received
-   */
-  signal::Signal<LinkService, Interest, EndpointId> afterReceiveInterest;
-
-  /** \brief signals on Data received
-   */
-  signal::Signal<LinkService, Data, EndpointId> afterReceiveData;
-
-  /** \brief signals on Nack received
-   */
-  signal::Signal<LinkService, lp::Nack, EndpointId> afterReceiveNack;
-
-  /** \brief signals on Interest dropped by reliability system for exceeding allowed number of retx
-   */
-  signal::Signal<LinkService, Interest> onDroppedInterest;
-
-public: // lower interface to be invoked by Transport
-  /** \brief performs LinkService specific operations to receive a lower-layer packet
-   */
-  void
-  receivePacket(const Block& packet, const EndpointId& endpoint);
-
-protected: // upper interface to be invoked in subclass (receive path termination)
-  /** \brief delivers received Interest to forwarding
-   */
-  void
-  receiveInterest(const Interest& interest, const EndpointId& endpoint);
-
-  /** \brief delivers received Data to forwarding
-   */
-  void
-  receiveData(const Data& data, const EndpointId& endpoint);
-
-  /** \brief delivers received Nack to forwarding
-   */
-  void
-  receiveNack(const lp::Nack& nack, const EndpointId& endpoint);
-
-protected: // lower interface to be invoked in subclass (send path termination)
-  /** \brief send a lower-layer packet via Transport
-   */
-  void
-  sendPacket(const Block& packet);
-
-protected:
-  void
-  notifyDroppedInterest(const Interest& packet);
-
-private: // upper interface to be overridden in subclass (send path entrypoint)
-  /** \brief performs LinkService specific operations to send an Interest
-   */
-  virtual void
-  doSendInterest(const Interest& interest) = 0;
-
-  /** \brief performs LinkService specific operations to send a Data
-   */
-  virtual void
-  doSendData(const Data& data) = 0;
-
-  /** \brief performs LinkService specific operations to send a Nack
-   */
-  virtual void
-  doSendNack(const lp::Nack& nack) = 0;
-
-private: // lower interface to be overridden in subclass
-  virtual void
-  doReceivePacket(const Block& packet, const EndpointId& endpoint) = 0;
-
-private:
-  Face* m_face;
-  Transport* m_transport;
-  nfd::face::ams::MulticastSuppression m_multicastSuppression;
-};
-
-inline const Face*
-LinkService::getFace() const
-{
-  return m_face;
 }
 
-inline const Transport*
-LinkService::getTransport() const
+LinkService::~LinkService()
 {
-  return m_transport;
 }
 
-inline Transport*
-LinkService::getTransport()
+void
+LinkService::setFaceAndTransport(Face& face, Transport& transport)
 {
-  return m_transport;
+  BOOST_ASSERT(m_face == nullptr);
+  BOOST_ASSERT(m_transport == nullptr);
+
+  m_face = &face;
+  m_transport = &transport;
 }
 
-inline const LinkService::Counters&
-LinkService::getCounters() const
+void
+LinkService::sendInterest(const Interest& interest)
 {
-  return *this;
+  BOOST_ASSERT(m_transport != nullptr);
+  NFD_LOG_FACE_TRACE(__func__);
+
+  if (this->getFace()->getLinkType() != ndn::nfd::LINK_TYPE_MULTI_ACCESS)
+  {
+    ++this->nOutInterests;
+    doSendInterest(interest);
+    return;
+  }
+  // apply suppression algorithm if sending through multicast face
+  // check if the interest is already in flight
+  if (m_multicastSuppression.interestInflight(interest)) {
+    NFD_LOG_INFO ("Interest drop, Interest " <<  interest.getName() << " is in flight, drop the forwarding");
+    return; // need to catch this, what should be the behaviour after dropping the interest?? 
+  }
+  // wait for suppression time before forwarding
+  // check if another interest is overheard during the wait, if heard, cancle the forwarding
+  auto suppressionTime = m_multicastSuppression.getDelayTimer(interest.getName(), 'i');
+  NFD_LOG_INFO("EMA duplicate count for Interest: " << interest.getName()
+                                    << " = " << m_multicastSuppression.getMovingAverage(interest.getName(), 'i'));
+  NFD_LOG_INFO ("Interest " <<  interest.getName() << " not in flight, waiting" << suppressionTime << "before forwarding");
+
+  auto entry_name = interest.getName();
+  entry_name.appendNumber(0);
+  auto eventId = getScheduler().schedule(suppressionTime, [this, interest, entry_name] {
+    NFD_LOG_INFO ("Interest " <<  interest.getName() << " sent, finally");
+    ++this->nOutInterests;
+    doSendInterest(interest);
+    m_multicastSuppression.recordInterest(interest);
+    if (m_scheduledEntry.count(entry_name) > 0)
+      m_scheduledEntry.erase(entry_name);
+  });
+  m_scheduledEntry.emplace(entry_name, eventId);
 }
 
-inline ssize_t
-LinkService::getEffectiveMtu() const
+void
+LinkService::sendData(const Data& data)
 {
-  return m_transport->getMtu();
+  BOOST_ASSERT(m_transport != nullptr);
+  NFD_LOG_FACE_TRACE(__func__);
+  if (this->getFace()->getLinkType() != ndn::nfd::LINK_TYPE_MULTI_ACCESS)
+  {
+    ++this->nOutData;
+    doSendData(data);
+    return;
+  }
+  /*
+    Same suppression logic as that of interest cannot be applied to multicast data.
+    Doing so we might end up suppressing data for the interest received at different interval
+    from different node, additionally it will also trigger multiple retransmission from the node
+    that didn't received the data due to suppression. This might not happen if unsolicated data are
+    cached, but the node that's supposed to send the data can't gurantee it.
+
+    data sending should wait before forwarding, during this wait time if another data is overheard, need to drop the forwarding
+    wait time should be determined based on the number of duplicate overhearing
+  */
+  //  for now, lets wait for some time before forwarding, if overheard, drop the reply
+  auto suppressionTime = m_multicastSuppression.getDelayTimer(data.getName(), 'd');
+  NFD_LOG_INFO("Waiting : " << suppressionTime<< "ms before sending data" << data.getName());
+
+  auto entry_name = data.getName();
+  entry_name.appendNumber(1);
+  auto eventId = getScheduler().schedule(suppressionTime, [this, data, entry_name] {
+
+    NFD_LOG_INFO("Sending data finally, via multicast face " << data.getName());
+    ++this->nOutData;
+    doSendData(data);
+    m_multicastSuppression.recordData(data);
+    if(m_scheduledEntry.count(entry_name) > 0)
+        m_scheduledEntry.erase(entry_name);
+
+  });
+  m_scheduledEntry.emplace(entry_name, eventId);
 }
 
-inline void
-LinkService::receivePacket(const Block& packet, const EndpointId& endpoint)
+void
+LinkService::sendNack(const ndn::lp::Nack& nack)
 {
-  doReceivePacket(packet, endpoint);
+  BOOST_ASSERT(m_transport != nullptr);
+  NFD_LOG_FACE_TRACE(__func__);
+
+  ++this->nOutNacks;
+
+  doSendNack(nack);
 }
 
-inline void
-LinkService::sendPacket(const Block& packet)
+bool
+LinkService::cancelIfSchdeuled(Name name, int type)
 {
-  m_transport->send(packet);
+  auto entry_name = name.appendNumber(type);
+  auto it = m_scheduledEntry.find(entry_name);
+  if (it != m_scheduledEntry.end()) {
+    it->second.cancel();
+    m_scheduledEntry.erase(entry_name);
+    return true;
+  }
+  return false;
+}
+
+void
+LinkService::receiveInterest(const Interest& interest, const EndpointId& endpoint)
+{
+  NFD_LOG_FACE_TRACE(__func__);
+  // record multicast interest
+  if (this->getFace()->getLinkType() == ndn::nfd::LINK_TYPE_MULTI_ACCESS)
+  {
+    NFD_LOG_INFO("Multicast interest received: " << interest.getName());
+    // check if a same interest is scheduled, if so drop it
+    if (cancelIfSchdeuled(interest.getName(), 0))
+      NDN_LOG_INFO("Interest drop, Interest " << interest.getName() << " overheard, duplicate forwarding dropped");
+    m_multicastSuppression.recordInterest(interest);
+  }
+  ++this->nInInterests;
+  afterReceiveInterest(interest, endpoint);
+}
+
+void
+LinkService::receiveData(const Data& data, const EndpointId& endpoint)
+{
+  NFD_LOG_FACE_TRACE(__func__);
+  // record multicast Data received
+  if (this->getFace()->getLinkType() == ndn::nfd::LINK_TYPE_MULTI_ACCESS)
+  {
+    NFD_LOG_INFO("Multicast data received: " << data.getName());
+    if (cancelIfSchdeuled(data.getName(), 1))
+      NDN_LOG_INFO("Data drop, Data " << data.getName() << " overheard, duplicate forwarding dropped");
+
+    if (cancelIfSchdeuled(data.getName(), 0)) // also can drop interest if shceduled for this data
+      NDN_LOG_INFO("Interest drop, Data " << data.getName() << " overheard, drop the corresponding scheduled interest"); 
+    
+    m_multicastSuppression.recordData(data);
+  }
+
+  ++this->nInData;
+  // record multicast data
+  afterReceiveData(data, endpoint);
+}
+
+void
+LinkService::receiveNack(const ndn::lp::Nack& nack, const EndpointId& endpoint)
+{
+  NFD_LOG_FACE_TRACE(__func__);
+
+  ++this->nInNacks;
+
+  afterReceiveNack(nack, endpoint);
+}
+
+void
+LinkService::notifyDroppedInterest(const Interest& interest)
+{
+  ++this->nInterestsExceededRetx;
+  onDroppedInterest(interest);
 }
 
 std::ostream&
-operator<<(std::ostream& os, const FaceLogHelper<LinkService>& flh);
-
-template<typename T>
-typename std::enable_if<std::is_base_of<LinkService, T>::value &&
-                        !std::is_same<LinkService, T>::value, std::ostream&>::type
-operator<<(std::ostream& os, const FaceLogHelper<T>& flh)
+operator<<(std::ostream& os, const FaceLogHelper<LinkService>& flh)
 {
-  return os << FaceLogHelper<LinkService>(flh.obj);
+  const Face* face = flh.obj.getFace();
+  if (face == nullptr) {
+    os << "[id=0,local=unknown,remote=unknown] ";
+  }
+  else {
+    os << "[id=" << face->getId() << ",local=" << face->getLocalUri()
+       << ",remote=" << face->getRemoteUri() << "] ";
+  }
+  return os;
 }
 
 } // namespace face
 } // namespace nfd
-
-#endif // NFD_DAEMON_FACE_LINK_SERVICE_HPP

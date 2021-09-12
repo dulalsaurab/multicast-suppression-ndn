@@ -1,7 +1,7 @@
-// #include "face-table.hpp"
-// #include "forwarder-counters.hpp"
 #include "core/common.hpp"
 #include <chrono>
+#include <ndn-cxx/util/random.hpp>
+
 #ifndef NFD_DAEMON_FACE_AMS_MULTICAST_SUPPRESSION_HPP
 #define NFD_DAEMON_FACE_AMS_MULTICAST_SUPPRESSION_HPP
 
@@ -9,11 +9,21 @@ namespace nfd {
 namespace face {
 namespace ams {
 
+struct InstanceHistory
+{
+  ndn::Name serviceName;
+  ndn::Name applicationPrefix;
+  ndn::time::seconds serviceLifetime;
+  ndn::time::system_clock::TimePoint publishTimestamp;
+  std::map<std::string, std::string> serviceMetaInfo;
+};
+
+
 class EMAMeasurements
 {
 
 public:
-  EMAMeasurements(Name name, double expMovingAverage, int lastDuplicateCount, double delayTime);
+  EMAMeasurements(double expMovingAverage, int lastDuplicateCount, double suppressionTime);
 
   void
   addUpdateEMA(int duplicateCount);
@@ -57,11 +67,7 @@ public:
   updateDelayTime();
 
   time::milliseconds
-  getCurrentSuppressionTime()
-  {
-    time::milliseconds delayTime (static_cast<int>(this->m_currentSuppressionTime));
-    return delayTime;
-  }
+  getCurrentSuppressionTime();
 
 private:
   Name m_name;
@@ -71,9 +77,9 @@ private:
   scheduler::EventId m_expirationId;
   int m_averageDuplicateCount; // not sure if needed, lets have it here for now
   const unsigned seed = std::chrono::system_clock::now().time_since_epoch().count();
-  static bool seeded;
-  // ndn::random::RandomNumberEngine& m_rng;
-  // std::uniform_int_distribution<int> m_rangeUniformRandom;
+
+  ndn::random::RandomNumberEngine& m_rng;
+  std::uniform_int_distribution<int> m_rangeUniformRandom;
 };
 
 
@@ -108,18 +114,17 @@ public:
     return (type =='i') ? &m_EMA_interest : &m_EMA_data;
   }
 
-  // below functions can be merged to one
   bool
   interestInflight(const Interest interest) const
   {
-    auto name = interest.getName(); //.getPrefix(-1); //need to remove the nounce before checking
+    auto name = interest.getName();
     return (m_interestHistory.find(name) != m_interestHistory.end() );
   }
 
   bool
   dataInflight(const Data data) const
   {
-    auto name = data.getName(); //.getPrefix(-1); //need to remove the nounce before checking
+    auto name = data.getName();
     return (m_dataHistory.find(name) != m_dataHistory.end());
   }
 

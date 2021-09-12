@@ -9,6 +9,8 @@
 #include <numeric>
 #include<stdio.h>
 #include <random>
+#include <math.h>
+#include <fstream>
 
 namespace nfd {
 namespace face {
@@ -16,30 +18,53 @@ namespace ams {
 
 NFD_LOG_INIT(MulticastSuppression);
 
-float DISCOUNT_FACTOR = 0.6;
-const time::milliseconds MEASUREMENT_LIFETIME = 300_s; // 5 minutes 
+double DISCOUNT_FACTOR = 0.125;
+double MAX_PROPOGATION_DELAY = 15; 
+const time::milliseconds MAX_MEASURMENT_INACTIVE_PERIOD = 300_s; // 5 minutes
+const time::milliseconds DEFAULT_INSTANT_LIFETIME = 30_ms;
+const double DUPLICATE_THRESHOLD = 1.5; // parameter to tune 
+const double ADATIVE_DECREASE = 10.0;
+const double MULTIPLICATIVE_INCREASE = 1.4;
 
-// in miliseconds ms
-const double minSuppressionTime = 5.0; 
-const double maxSuppressionTime= 100.0;
-const int successfulTransmission = 1; // S, we are taking 1 for now
+// in milliseconds ms
+const double minSuppressionTime = 5.0f; 
+const double maxSuppressionTime= 15000.0f;
+static bool seeded = false;
 
-// EMA section
-// objectName granularity is (-1) name component
-bool EMAMeasurements::seeded = false;
-EMAMeasurements::EMAMeasurements(Name name, double expMovingAverage = 1.0, int lastDuplicateCount = 0, double delayTime = 1.0)
-: m_name(name)
-, m_expMovingAveragePrev (expMovingAverage)
-, m_expMovingAverageCurrent (expMovingAverage)
-, m_averageDuplicateCount (lastDuplicateCount) // need to change: average for all the name, e.g. name (/a/b, = 2 /a/c = 2), /a = (2+2)/2 = 2 
-, m_currentSuppressionTime(delayTime)
+// only for experiment purpose, will be removed later
+int
+getSeed()
+{
+    std::string line;
+    std::ifstream f ("seed"); // read file and return the value
+    getline(f, line);
+    auto seed = std::stoi (line);
+    NFD_LOG_INFO ("value of the seed: " << seed);
+    return seed;
+}
+
+int
+getRandomNumber(int upperBound)
 {
     if (!seeded) {
-        unsigned seed = std::chrono::system_clock::now().time_since_epoch().count();
+        unsigned seed = getSeed();
         NFD_LOG_INFO ("seeded " << seed);
         std::srand(seed);
         seeded = true;
     }
+    return std::rand() % upperBound;
+}
+
+// EMA section
+// objectName granularity is (-1) name component
+EMAMeasurements::EMAMeasurements(double expMovingAverage = 0, int lastDuplicateCount = 0, double suppressionTime = 5.0)
+: m_expMovingAveragePrev (expMovingAverage)
+, m_expMovingAverageCurrent (expMovingAverage)
+, m_averageDuplicateCount (lastDuplicateCount) // need to change: average for all the name, e.g. name (/a/b, = 2 /a/c = 2), /a = (2+2)/2 = 2 
+, m_currentSuppressionTime(suppressionTime)
+, m_rng(ndn::random::getRandomNumberEngine())
+, m_rangeUniformRandom(0, maxSuppressionTime)
+{
 }
 /*
  we compute exponential moving average to give higher preference to the most recent interest/data
@@ -49,51 +74,42 @@ EMAMeasurements::EMAMeasurements(Name name, double expMovingAverage = 1.0, int l
 void
 EMAMeasurements::addUpdateEMA(int duplicateCount)
 {
-    
-    NFD_LOG_INFO("moving average before: " << m_expMovingAverageCurrent);
     m_expMovingAveragePrev = m_expMovingAverageCurrent;
-    m_expMovingAverageCurrent =  DISCOUNT_FACTOR*duplicateCount
-                                                       + (1 - DISCOUNT_FACTOR)*m_expMovingAveragePrev;
-     NFD_LOG_INFO("moving average after: " << m_expMovingAverageCurrent << "\n duplicate count "<<  duplicateCount);
-    updateDelayTime();
+    if (m_expMovingAverageCurrent == 0) {
+        m_expMovingAverageCurrent = duplicateCount;
+    }
+    else {
+        m_expMovingAverageCurrent =  round ((DISCOUNT_FACTOR*duplicateCount
+-                                                                       + (1 - DISCOUNT_FACTOR)*this->m_expMovingAverageCurrent)*100.0)/100.0;
+        updateDelayTime();
+    }
+    NFD_LOG_INFO("Moving average" << " before: " << m_expMovingAveragePrev 
+                                                                 << " after: " << m_expMovingAverageCurrent
+                                                                 << " duplicate count: " << duplicateCount
+                                                                 << " suppression time: "<< this->m_currentSuppressionTime);
 }
 
-/* 
-  Computes an estimated wait time for a given prefix
-  Algorithm: History Based Probabilistic Backoff Algorithm 
-  (https://thescipub.com/pdf/ajeassp.2012.230.236.pdf)
-  Contention Window (CW)
-*/
+time::milliseconds
+EMAMeasurements::getCurrentSuppressionTime()
+{
+    time::milliseconds suppressionTime (getRandomNumber(static_cast<int> (this->m_currentSuppressionTime)));
+    NFD_LOG_INFO("Suppression time: " << this->m_currentSuppressionTime << " Suppression timer: " << suppressionTime);
+    return suppressionTime;
+}
+
 void
 EMAMeasurements::updateDelayTime()
 {
-    auto collionProbability = m_expMovingAverageCurrent/(1+m_expMovingAverageCurrent);   // this can be 0/0
-    // auto discountedCollisionProb =  DISCOUNT_FACTOR*collionProbability;
-    // try
-    // {
-    NFD_LOG_INFO("collionProbability: "<< collionProbability);
-    auto temp = std::min(maxSuppressionTime, 
-                                       m_currentSuppressionTime*pow(2, m_expMovingAverageCurrent));
-    // source: https://aws.amazon.com/blogs/architecture/exponential-backoff-and-jitter/
-    m_currentSuppressionTime = 0.3*temp +  std::rand() % (static_cast<int>(temp*0.7) + 1); //added +1 to avoid /0 case 
- 
-    //  need to think more about the second component and what to multiply with, now lets use collisionProb
-    // float alpha;
-    // auto previousSuppressionTime = this->m_currentSuppressionTime;
-    // float collionProbability = this->m_expMovingAverageCurrent/(1+this->m_expMovingAverageCurrent);   // this can't be 0/0
-    // if (this->m_expMovingAverageCurrent < 2)
-    // {
-    //     // number of duplicate is in acceptable range
-    //     alpha = -1 + collionProbability*2;
-    //     this->m_currentSuppressionTime = std::min(maxSuppressionTime-1, previousSuppressionTime*pow(2, alpha)); 
-    // }
-    // else
-    // {
-    //     // number of collision decreased
-    //     alpha = -1 + (1 - collionProbability)*2;
-    //     this->m_currentSuppressionTime = std::max(minSuppressionTime+1, previousSuppressionTime*pow(2, alpha));
-    // }
-    NFD_LOG_INFO("New suppression time set: " << this->m_currentSuppressionTime);
+    double temp;
+    // Implicit action: if you haven’t reached the goal, but your moving average is decreasing then do nothing.
+    if (m_expMovingAverageCurrent > DUPLICATE_THRESHOLD && m_expMovingAverageCurrent >=m_expMovingAveragePrev)
+        temp = m_currentSuppressionTime*MULTIPLICATIVE_INCREASE; // ADATIVE_DECREASE;
+    else if (m_expMovingAverageCurrent <= DUPLICATE_THRESHOLD)
+        temp = m_currentSuppressionTime - ADATIVE_DECREASE;
+    else
+        temp = m_currentSuppressionTime;
+    
+    m_currentSuppressionTime =  std::min(std::max(minSuppressionTime, temp), maxSuppressionTime);
 }
 
 void
@@ -104,19 +120,18 @@ MulticastSuppression::recordInterest(const Interest interest)
     auto it = m_interestHistory.find(name);
     if (it == m_interestHistory.end()) // check if interest is already in the map
     {
-         m_interestHistory.emplace(name, 1);
-         NFD_LOG_INFO ("Interest: " << name << " inserted into map");
+        m_interestHistory.emplace(name, 1);
+        NFD_LOG_INFO ("Interest: " << name << " inserted into map");
+
+        //  remove the entry after the lifetime expries
+        time::milliseconds entryLifetime = DEFAULT_INSTANT_LIFETIME;
+        NFD_LOG_INFO("Erasing the interest from the map in : " << entryLifetime); 
+        setUpdateExpiration(entryLifetime, name, 'i');
     }
     else { 
         NFD_LOG_INFO("Counter for interest " << name << " incremented");
          ++it->second;
     }
-    time::milliseconds entryLifetime = interest.getInterestLifetime();
-    if (entryLifetime < time::milliseconds::zero())
-        entryLifetime = ndn::DEFAULT_INTEREST_LIFETIME;
-
-    NFD_LOG_INFO("Erasing the interest from the map in : " << entryLifetime); 
-    setUpdateExpiration(entryLifetime, name, 'i');
 }
 
 void
@@ -127,8 +142,12 @@ MulticastSuppression::recordData(Data data)
     auto it = m_dataHistory.find(name);
     if (it == m_dataHistory.end())
     {
-       NFD_LOG_INFO("Inserting data " << name << " into the map");
-       m_dataHistory.emplace(name, 1);
+        NFD_LOG_INFO("Inserting data " << name << " into the map");
+        m_dataHistory.emplace(name, 1);
+
+        time::milliseconds entryLifetime = DEFAULT_INSTANT_LIFETIME;
+        NFD_LOG_INFO("Erasing the data from the map in : " << entryLifetime); 
+        setUpdateExpiration(entryLifetime, name, 'd');
     }
     else
     {
@@ -150,9 +169,6 @@ MulticastSuppression::recordData(Data data)
             NFD_LOG_INFO("Interest successfully deleted from the history " <<name);
             }
     }
-    time::milliseconds entryLifetime = data.getFreshnessPeriod();
-    NFD_LOG_INFO("Erasing the data from the map in : " << entryLifetime); 
-    setUpdateExpiration(entryLifetime, name, 'd');
 }
 
 void
@@ -183,15 +199,10 @@ MulticastSuppression::setUpdateExpiration(time::milliseconds entryLifetime, Name
 void
 MulticastSuppression::print_map(std::map <Name, int> _map, char type)
 {
-    NFD_LOG_INFO("++++++++");
     for (auto& it: _map)
     {
-        NFD_LOG_INFO ("Type: " << type 
-                                                      << " , Object name: " << it.first 
-                                                      << " , dup count: "  << it.second
-                                                    );
+        NFD_LOG_INFO ("Type: " << type  << " , Object name: " << it.first  << " , dup count: "  << it.second);
     }
-    NFD_LOG_INFO("++++++++");
 }
 
 void
@@ -199,17 +210,18 @@ MulticastSuppression::updateMeasurement(Name name, char type)
 {
     auto vec = getEMARecorder(type);
     auto duplicateCount = getDuplicateCount(name, type);
+    NDN_LOG_INFO("Name:  " << name << " Duplicate Count: " << duplicateCount << " type: " << type);
     // granularity = name - last component e.g. /a/b --> /a
     name = name.getPrefix(-1);
     auto it = vec->find(name);
     if (it == vec->end())
     {
         NFD_LOG_INFO("Creating EMA record for name: " << name << " type: " << type);
-        auto expirationId = getScheduler().schedule(MEASUREMENT_LIFETIME, [=]  {
+        auto expirationId = getScheduler().schedule(MAX_MEASURMENT_INACTIVE_PERIOD, [=]  {
                                         if (vec->count(name) > 0)
                                             vec->erase(name);
                                     });
-        auto& emaEntry = vec->emplace(name, std::make_shared<EMAMeasurements>(name, duplicateCount, duplicateCount)).first->second;
+        auto& emaEntry = vec->emplace(name, std::make_shared<EMAMeasurements>()).first->second;
         emaEntry->setEMAExpiration(expirationId);
         emaEntry->addUpdateEMA(duplicateCount);
     }
@@ -217,7 +229,7 @@ MulticastSuppression::updateMeasurement(Name name, char type)
     {
         NFD_LOG_INFO("Updating EMA record for name: " << name << " type: " << type);
         it->second->getEMAExpiration().cancel();
-        auto expirationId = getScheduler().schedule(MEASUREMENT_LIFETIME, [=]  {
+        auto expirationId = getScheduler().schedule(MAX_MEASURMENT_INACTIVE_PERIOD, [=]  {
                                             if (vec->count(name) > 0)
                                                 vec->erase(name); 
                                         });
@@ -245,7 +257,9 @@ MulticastSuppression::getDelayTimer(Name name, char type)
 {
     auto vec = getEMARecorder(type);
     auto it = vec->find(name.getPrefix(-1)); //granularity -1
-    return (it != vec->end()) ?  it->second->getCurrentSuppressionTime() : getRandomTime(); // if no measurement, forward immediately (observation phase)
+    auto suppressionTimer = (it != vec->end()) ?  it->second->getCurrentSuppressionTime() : static_cast<time::milliseconds>(getRandomNumber(5)); // if no measurement,  get a random number between 0, 5
+    NFD_LOG_INFO("Suppression timer for name: " << name << " and type: "<< type << " = " << suppressionTimer);
+    return suppressionTimer;
 }
 
 } //namespace ams
