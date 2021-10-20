@@ -1,21 +1,25 @@
-#include "fw/multicast-suppression.hpp"
+#include "face/multicast-suppression.hpp"
 
 #include "fw/multicast-strategy.hpp"
 
+// #include "tests/test-common.hpp
+
 #include "tests/daemon/global-io-fixture.hpp"
-#include "topology-tester.hpp"
+#include "tests/daemon/fw/topology-tester.hpp"
 
 #include <boost/mpl/vector.hpp>
 
 namespace nfd {
-namespace fw {
+namespace face {
 namespace ams {
 namespace tests {
 
 using namespace nfd::fw::tests;
 
-BOOST_AUTO_TEST_SUITE(Fw)
+BOOST_AUTO_TEST_SUITE(Face)
 BOOST_FIXTURE_TEST_SUITE(TestAMS, GlobalIoTimeFixture)
+
+using nfd::Face;
 
 class AMSFixture : public GlobalIoTimeFixture
 {
@@ -28,7 +32,7 @@ protected:
     nodeP = topo.addForwarder("P");
 
     for (TopologyNode node : {nodeC1, nodeC2, nodeP}) {
-      topo.setStrategy<MulticastStrategy>(node);
+      topo.setStrategy<nfd::fw::MulticastStrategy>(node);
     }
 
     auto w = topo.addLink("W", 10_ms, {nodeC1, nodeC2, nodeP}, ndn::nfd::LINK_TYPE_MULTI_ACCESS);
@@ -45,12 +49,12 @@ protected:
     topo.addEchoProducer(producer->getClientFace(), PRODUCER_PREFIX, 2_s);
   }
 
-  void
-  runConsumer(shared_ptr<TopologyAppLink> &con, size_t numInterests = 1)
-  {
-    topo.addIntervalConsumer(con->getClientFace(), PRODUCER_PREFIX, 1_s, numInterests);
-    this->advanceClocks(10_ms, time::seconds(numInterests));
-  }
+  // void
+  // runConsumer(shared_ptr<TopologyAppLink> &con, size_t numInterests = 1)
+  // {
+  //   topo.addIntervalConsumer(con->getClientFace(), PRODUCER_PREFIX, 1_s, numInterests);
+  //   this->advanceClocks(10_ms, time::seconds(numInterests));
+  // }
 
 protected:
   TopologyTester topo;
@@ -82,28 +86,28 @@ BOOST_FIXTURE_TEST_CASE(Basic, AMSFixture)
   auto interest = makeInterest(name);
 
   consumer1->getClientFace().expressInterest(*interest, nullptr, nullptr, nullptr);
-  this->advanceClocks(10_ms, 1_s);
+  this->advanceClocks(5_ms, 1_s);
 
   // we expect both C2 and P to receive the interest sent by consumer1.
   BOOST_CHECK_EQUAL(faceC1->getCounters().nOutInterests, 1);
   BOOST_CHECK_EQUAL(faceP->getCounters().nInInterests, 1);
   BOOST_CHECK_EQUAL(faceC2->getCounters().nInInterests, 1);
 
-  // this interest should be suppressed because consumer2 have already overheard the first interest
-  consumer2->getClientFace().expressInterest(*interest, nullptr, nullptr, nullptr);
-  this->advanceClocks(3_ms, 90_ms);
-  BOOST_CHECK_EQUAL(faceC2->getCounters().nOutInterests, 0);
+   // this interest should be suppressed because consumer2 have already overheard the first interest
+   consumer2->getClientFace().expressInterest(*interest, nullptr, nullptr, nullptr);
+   this->advanceClocks(3_ms, 90_ms);
+   BOOST_CHECK_EQUAL(faceC2->getCounters().nOutInterests, 0);
 
-  this->advanceClocks(10_ms, 3_s);
-  //  at this stage both consumer c1, and c2 should get the data packet back
-  BOOST_CHECK_EQUAL(faceC1->getCounters().nInData, 1);
-  BOOST_CHECK_EQUAL(faceC2->getCounters().nInData, 1);
+   this->advanceClocks(10_ms, 3_s);
+   //  at this stage both consumer c1, and c2 should get the data packet back
+   BOOST_CHECK_EQUAL(faceC1->getCounters().nInData, 1);
+   BOOST_CHECK_EQUAL(faceC2->getCounters().nInData, 1);
 
- // interest here is differnt than the previous one, but the prefix (component -1) is same so the EMA for the prefix will be computed
-  interest = makeInterest(name.getPrefix(-1).append("test1"));
-  consumer1->getClientFace().expressInterest(*interest, nullptr, nullptr, nullptr);
-  this->advanceClocks(10_ms, 2_ms);
-  BOOST_CHECK_EQUAL(faceC1->getCounters().nOutInterests, 1);
+  // interest here is differnt than the previous one, but the prefix (component -1) is same so the EMA for the prefix will be computed
+   interest = makeInterest(name.getPrefix(-1).append("test1"));
+   consumer1->getClientFace().expressInterest(*interest, nullptr, nullptr, nullptr);
+   this->advanceClocks(10_ms, 2_ms);
+   BOOST_CHECK_EQUAL(faceC1->getCounters().nOutInterests, 1);
 
 }
 

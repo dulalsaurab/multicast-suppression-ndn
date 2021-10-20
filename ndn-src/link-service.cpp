@@ -72,8 +72,6 @@ LinkService::sendInterest(const Interest& interest)
   // wait for suppression time before forwarding
   // check if another interest is overheard during the wait, if heard, cancle the forwarding
   auto suppressionTime = m_multicastSuppression.getDelayTimer(interest.getName(), 'i');
-  NFD_LOG_INFO("EMA duplicate count for Interest: " << interest.getName()
-                                    << " = " << m_multicastSuppression.getMovingAverage(interest.getName(), 'i'));
   NFD_LOG_INFO ("Interest " <<  interest.getName() << " not in flight, waiting" << suppressionTime << "before forwarding");
 
   auto entry_name = interest.getName();

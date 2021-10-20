@@ -49,7 +49,8 @@ if __name__ == '__main__':
     ndnwifi = MinindnWifi()
     args = ndnwifi.args
 
-    testFile = "/home/mini-ndn/europa_bkp/mini-ndn/ndndump.txt"
+    #testFile = "/home/mini-ndn/europa_bkp/mini-ndn/ndndump.txt"
+    testFile = "/home/mini-ndn/europa_bkp/mini-ndn/sdulal/multicast-supression-ndn/files/output.dat"
     a = ndnwifi.net["sta1"]
     b = ndnwifi.net["sta2"]
     c = ndnwifi.net["sta3"]
@@ -69,7 +70,6 @@ if __name__ == '__main__':
     sleep(2)
     nfds = AppManager(ndnwifi, ndnwifi.net.stations, Nfd, logLevel='DEBUG')
 
-    # start ping server at each node
     mcast = "224.0.23.170"
     producers = [ndnwifi.net["sta1"]] #, ndnwifi.net["sta3"]]
     consumers = [y  for y in ndnwifi.net.stations if y.name not in [x.name for x in producers]]

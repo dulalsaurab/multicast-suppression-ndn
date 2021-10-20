@@ -9,15 +9,26 @@ namespace nfd {
 namespace face {
 namespace ams {
 
-struct InstanceHistory
+/* Simple trie implementaiton for the name tree, and prefix match */
+class NameTree
 {
-  ndn::Name serviceName;
-  ndn::Name applicationPrefix;
-  ndn::time::seconds serviceLifetime;
-  ndn::time::system_clock::TimePoint publishTimestamp;
-  std::map<std::string, std::string> serviceMetaInfo;
-};
+public:
+  std::map<char, NameTree*> children;
+  bool isLeaf;
+  double suppressionTime;
 
+  NameTree();
+
+  void 
+  insert(std::string prefix, double value);
+
+  double
+  longestPrefixMatch(const std::string& prefix); //longest prefix match
+
+  time::milliseconds
+  getSuppressionTimer(const std::string& prefix);
+
+};
 
 class EMAMeasurements
 {
@@ -33,6 +44,7 @@ public:
   {
     return this->m_expirationId;
   }
+
   void
   setEMAExpiration(scheduler::EventId& expirationId)
   {
@@ -52,41 +64,37 @@ public:
   }
 
   void
-  setLastDuplicateCount(int duplicateCount)
-  {
-    this->m_averageDuplicateCount = duplicateCount;
-  }
+  updateDelayTime();
 
-  int
-  getAverageDuplicateCount()
+  double
+  getCurrentSuppressionTime()
   {
-    return this->m_averageDuplicateCount;
+    return m_currentSuppressionTime;
   }
 
   void
-  updateDelayTime();
-
-  time::milliseconds
-  getCurrentSuppressionTime();
+  setSSthress(double val, int factor = 2)
+  {
+    m_ssthress = val/factor;
+  }
 
 private:
-  Name m_name;
   double m_expMovingAveragePrev;
   double m_expMovingAverageCurrent;
   double m_currentSuppressionTime;
   scheduler::EventId m_expirationId;
-  int m_averageDuplicateCount; // not sure if needed, lets have it here for now
-  const unsigned seed = std::chrono::system_clock::now().time_since_epoch().count();
-
-  ndn::random::RandomNumberEngine& m_rng;
-  std::uniform_int_distribution<int> m_rangeUniformRandom;
+  double m_computedMaxSuppressionTime;
+  int m_lastDuplicateCount;
+  double m_ssthress;
+  int ignore;
 };
 
 
 class MulticastSuppression
 {
 public:
-  void 
+
+  void
   recordInterest(const Interest interest);
 
   void
@@ -114,6 +122,12 @@ public:
     return (type =='i') ? &m_EMA_interest : &m_EMA_data;
   }
 
+  NameTree*
+  getNameTree(char type)
+  {
+    return (type =='i') ? &m_interestNameTree : &m_dataNameTree; 
+  }
+
   bool
   interestInflight(const Interest interest) const
   {
@@ -135,13 +149,7 @@ getRandomTime()
   }
 
 void
-print_map(std::map <Name, int> _map, char type);
-
-void
 updateMeasurement(Name name, char type);
-
-float
-getMovingAverage(Name prefix, char type);
 
 // set interest or data expiration
 void
@@ -156,6 +164,8 @@ private:
     std::map <Name, scheduler::EventId> m_objectExpirationTimer;
     std::map<Name, std::shared_ptr<EMAMeasurements>> m_EMA_data;
     std::map<Name, std::shared_ptr<EMAMeasurements>> m_EMA_interest;
+    NameTree m_dataNameTree;
+    NameTree m_interestNameTree;
 };
 } //namespace ams
 } //namespace face
