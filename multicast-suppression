@@ -1,1 +1,48 @@
-<mxfile host="app.diagrams.net" modified="2021-10-22T03:14:37.789Z" agent="5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/94.0.4606.81 Safari/537.36" version="15.5.8" etag="q3timomA0tKl7iosjH8M" type="github"><diagram id="G3dCDPM0sUreK_Xgv8OZ">UzV2zq1wL0osyPDNT0nNUTV2VTV2LsrPL4GwciucU3NyVI0MMlNUjV1UjYwMgFjVyA2HrCFY1qAgsSg1rwSLBiADYTaQg2Y1AA==</diagram></mxfile>
+<mxfile host="app.diagrams.net" modified="2021-10-22T03:20:06.825Z" agent="5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/94.0.4606.81 Safari/537.36" etag="TO8pRFrhy8SWLoQF8DUR" version="15.5.8" type="github">
+  <diagram id="G3dCDPM0sUreK_Xgv8OZ" name="Page-1">
+    <mxGraphModel dx="786" dy="455" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="850" pageHeight="1100" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="-yDLf725f41_moqFIltX-4" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="-yDLf725f41_moqFIltX-1" target="-yDLf725f41_moqFIltX-3">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="-yDLf725f41_moqFIltX-7" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;" edge="1" parent="1" source="-yDLf725f41_moqFIltX-1" target="-yDLf725f41_moqFIltX-5">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="-yDLf725f41_moqFIltX-1" value="&lt;font style=&quot;font-size: 14px&quot;&gt;in &lt;br&gt;table &lt;br&gt;?&lt;/font&gt;" style="rhombus;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="220" y="140" width="80" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="-yDLf725f41_moqFIltX-2" value="" style="endArrow=classic;html=1;rounded=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" target="-yDLf725f41_moqFIltX-1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="10" y="180" as="sourcePoint" />
+            <mxPoint x="100" y="140" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="-yDLf725f41_moqFIltX-8" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;" edge="1" parent="1" source="-yDLf725f41_moqFIltX-3">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="480" y="280" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="-yDLf725f41_moqFIltX-3" value="&lt;span id=&quot;docs-internal-guid-3ecac329-7fff-5ad3-7e87-8636be9114b1&quot; style=&quot;font-size: 14px&quot;&gt;&lt;p dir=&quot;ltr&quot; style=&quot;line-height: 1.2 ; margin-top: 0pt ; margin-bottom: 0pt&quot;&gt;&lt;span style=&quot;font-family: &amp;#34;merriweather&amp;#34; , serif ; background-color: transparent ; vertical-align: baseline&quot;&gt;is&amp;nbsp;&lt;/span&gt;&lt;/p&gt;&lt;p dir=&quot;ltr&quot; style=&quot;line-height: 1.2 ; margin-top: 0pt ; margin-bottom: 0pt&quot;&gt;&lt;span style=&quot;font-family: &amp;#34;merriweather&amp;#34; , serif ; background-color: transparent ; vertical-align: baseline&quot;&gt;interest&lt;/span&gt;&lt;span style=&quot;font-family: &amp;#34;merriweather&amp;#34; , serif ; background-color: transparent ; vertical-align: baseline&quot;&gt;&lt;br&gt;&lt;/span&gt;&lt;span style=&quot;font-family: &amp;#34;merriweather&amp;#34; , serif ; background-color: transparent ; vertical-align: baseline&quot;&gt; ?&lt;/span&gt;&lt;/p&gt;&lt;/span&gt;" style="rhombus;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="440" y="140" width="80" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="-yDLf725f41_moqFIltX-5" value="&lt;span id=&quot;docs-internal-guid-f6fcedd4-7fff-859e-6267-175e3d8eb652&quot; style=&quot;font-size: 14px&quot;&gt;&lt;p dir=&quot;ltr&quot; style=&quot;text-align: left ; line-height: 1.2 ; margin-top: 0pt ; margin-bottom: 0pt&quot;&gt;&lt;span style=&quot;font-family: &amp;#34;merriweather&amp;#34; , serif ; background-color: transparent ; vertical-align: baseline&quot;&gt;- add I/D to the table&lt;/span&gt;&lt;/p&gt;&lt;p dir=&quot;ltr&quot; style=&quot;text-align: left ; line-height: 1.2 ; margin-top: 0pt ; margin-bottom: 0pt&quot;&gt;&lt;span style=&quot;font-family: &amp;#34;merriweather&amp;#34; , serif ; background-color: transparent ; vertical-align: baseline&quot;&gt;- &lt;/span&gt;&lt;span style=&quot;font-family: &amp;#34;merriweather&amp;#34; , serif ; background-color: transparent ; font-style: italic ; vertical-align: baseline&quot;&gt;init&lt;/span&gt;&lt;span style=&quot;font-family: &amp;#34;merriweather&amp;#34; , serif ; background-color: transparent ; vertical-align: baseline&quot;&gt; the duplicate counter&lt;/span&gt;&lt;/p&gt;&lt;p dir=&quot;ltr&quot; style=&quot;text-align: left ; line-height: 1.2 ; margin-top: 0pt ; margin-bottom: 0pt&quot;&gt;&lt;span style=&quot;font-family: &amp;#34;merriweather&amp;#34; , serif ; background-color: transparent ; vertical-align: baseline&quot;&gt;- schedule (I or D) expiration&lt;/span&gt;&lt;/p&gt;&lt;div style=&quot;text-align: left&quot;&gt;&lt;span style=&quot;font-family: &amp;#34;merriweather&amp;#34; , serif ; background-color: transparent ; vertical-align: baseline&quot;&gt;&lt;br&gt;&lt;/span&gt;&lt;/div&gt;&lt;/span&gt;" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="175" y="281" width="170" height="79" as="geometry" />
+        </mxCell>
+        <mxCell id="-yDLf725f41_moqFIltX-9" value="&lt;span id=&quot;docs-internal-guid-f6fcedd4-7fff-859e-6267-175e3d8eb652&quot; style=&quot;font-size: 13px&quot;&gt;&lt;p dir=&quot;ltr&quot; style=&quot;text-align: left ; line-height: 1.2 ; margin-top: 0pt ; margin-bottom: 0pt&quot;&gt;&lt;span style=&quot;font-size: 11pt ; font-family: &amp;#34;merriweather&amp;#34; , serif ; color: rgb(0 , 0 , 0) ; background-color: transparent ; font-weight: 400 ; font-style: normal ; font-variant: normal ; text-decoration: none ; vertical-align: baseline&quot;&gt;- compute EMA of interest duplicate count&amp;nbsp;&lt;/span&gt;&lt;/p&gt;&lt;p dir=&quot;ltr&quot; style=&quot;text-align: left ; line-height: 1.2 ; margin-top: 0pt ; margin-bottom: 0pt&quot;&gt;&lt;span style=&quot;font-size: 11pt ; font-family: &amp;#34;merriweather&amp;#34; , serif ; color: rgb(0 , 0 , 0) ; background-color: transparent ; font-weight: 400 ; font-style: normal ; font-variant: normal ; text-decoration: none ; vertical-align: baseline&quot;&gt;- &lt;/span&gt;&lt;span style=&quot;font-size: 11pt ; font-family: &amp;#34;merriweather&amp;#34; , serif ; color: rgb(0 , 0 , 0) ; background-color: transparent ; font-weight: 400 ; font-style: normal ; font-variant: normal ; text-decoration: none ; vertical-align: baseline&quot;&gt;remove corresponding interest&lt;/span&gt;&lt;/p&gt;&lt;p dir=&quot;ltr&quot; style=&quot;line-height: 1.2 ; margin-top: 0pt ; margin-bottom: 0pt&quot;&gt;&lt;div style=&quot;text-align: left&quot;&gt;&lt;span style=&quot;background-color: transparent ; font-family: &amp;#34;merriweather&amp;#34; , serif ; font-size: 11pt&quot;&gt;- (++ data counter)&lt;/span&gt;&lt;/div&gt;&lt;span id=&quot;docs-internal-guid-f3e63386-7fff-4b89-8f74-c84a231cd13b&quot;&gt;&lt;div style=&quot;text-align: left&quot;&gt;&lt;span style=&quot;background-color: transparent ; font-family: &amp;#34;merriweather&amp;#34; , serif ; font-size: 11pt&quot;&gt;&amp;nbsp; &amp;nbsp; &amp;amp; schedule data deletion&lt;/span&gt;&lt;/div&gt;&lt;/span&gt;&lt;/p&gt;&lt;/span&gt;" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="395" y="281" width="265" height="79" as="geometry" />
+        </mxCell>
+        <mxCell id="-yDLf725f41_moqFIltX-10" value="Interest or data&lt;br&gt;&amp;nbsp;(I or D)" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=15;" vertex="1" parent="1">
+          <mxGeometry x="40" y="146" width="160" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="-yDLf725f41_moqFIltX-11" value="" style="endArrow=classic;html=1;rounded=0;fontSize=15;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="31" y="161" as="sourcePoint" />
+            <mxPoint x="61" y="161" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
