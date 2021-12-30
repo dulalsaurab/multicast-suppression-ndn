@@ -49,7 +49,7 @@ if __name__ == '__main__':
     ndnwifi = MinindnWifi()
     args = ndnwifi.args
 
-    #testFile = "/home/mini-ndn/europa_bkp/mini-ndn/ndndump.txt"
+    # testFile = "/home/mini-ndn/europa_bkp/mini-ndn/ndndump.txt"
     testFile = "/home/mini-ndn/europa_bkp/mini-ndn/sdulal/multicast-supression-ndn/files/output.dat"
     a = ndnwifi.net["sta1"]
     b = ndnwifi.net["sta2"]
@@ -64,7 +64,7 @@ if __name__ == '__main__':
         node.cmd(cmd)
     sleep(1)
 
-    nodes = {"sta1" : "/file/temp1", "sta2":"b" , "sta3":"/file/temp2", "sta4":"d", "sta5":"e"}
+    nodes = {"sta1" : "/file/temp1", "sta2":"b" , "sta3":"/file/temp2", "sta4":"d"}
     ndnwifi.start()
     info("Starting NFD")
     sleep(2)

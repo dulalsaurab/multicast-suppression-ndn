@@ -29,11 +29,17 @@ for i, x in enumerate(axes):
     x.set_xticklabels([100, 200, 300, 400, 500, 600])
     x.set_ylabel('suppression time (ms)', fontsize = 'small')
     df[i].plot(ax=x, kind='line', y='st', color='b')
+    x.legend(loc="upper left")
+
+    x2 =x.twinx()
+    x2.set_ylabel('ewma', fontsize='small')
 
     # x.set_xticklabels([100, 200, 300, 400, 500, 600]) 
-    df_t = df[i]['ema'].apply(lambda x: x*50)
-    df_t.plot(ax=x, kind='line', y='ema', color='g')
+    df_t = df[i]['ema'].apply(lambda x: x)
+    df_t.plot(ax=x2, kind='line', y='ewma', color='g', label="ewma")
 
     # df_t1 = df[i]['dup'].apply(lambda x: x*50)
     # df_t1.plot(ax=x, kind='line', linestyle='dashed', y='ema', color='g')
-plt.savefig('test.png', bbox_inches='tight')
+    # x2.legend([st])
+    x2.legend()
+plt.savefig('after-fix.png', bbox_inches='tight')

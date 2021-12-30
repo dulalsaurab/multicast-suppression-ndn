@@ -37,7 +37,7 @@ public:
   EMAMeasurements(double expMovingAverage, int lastDuplicateCount, double suppressionTime);
 
   void
-  addUpdateEMA(int duplicateCount);
+  addUpdateEMA(int duplicateCount, bool wasForwarded);
 
   scheduler::EventId&
   getEMAExpiration()
@@ -64,7 +64,7 @@ public:
   }
 
   void
-  updateDelayTime();
+  updateDelayTime(bool wasForwarded);
 
   double
   getCurrentSuppressionTime()
@@ -94,11 +94,17 @@ class MulticastSuppression
 {
 public:
 
-  void
-  recordInterest(const Interest interest);
+  struct ObjectHistory
+  {
+    int counter;
+    bool isForwarded;
+  };
 
   void
-  recordData(const Data data);
+  recordInterest(const Interest interest, bool isForwarded = false);
+
+  void
+  recordData(const Data data, bool isForwarded = false);
 
   int
   getDuplicateCount(const Name name, char type)
@@ -106,11 +112,11 @@ public:
     auto temp_map = getRecorder(type);
     auto it = temp_map->find(name);
     if (it != temp_map->end())
-      return it->second;
+      return it->second.counter;
     return 0;
   }
 
-  std::map<Name, int>*
+  std::map<Name, ObjectHistory>*
   getRecorder(char type)
   {
     return (type == 'i') ? &m_interestHistory : &m_dataHistory;
@@ -158,14 +164,23 @@ setUpdateExpiration(time::milliseconds entryLifetime, Name name, char type);
 time::milliseconds
 getDelayTimer(Name name, char type);
 
+bool
+getForwardedStatus(ndn::Name prefix, char type)
+{
+  auto recorder = getRecorder(type);
+  auto it = recorder->find(prefix);
+  return it != recorder->end() ? it->second.isForwarded : false; // if record exist, send whatever is the status else send false
+}
+
 private:
-    std::map <Name, int> m_dataHistory;
-    std::map <Name, int> m_interestHistory;
-    std::map <Name, scheduler::EventId> m_objectExpirationTimer;
-    std::map<Name, std::shared_ptr<EMAMeasurements>> m_EMA_data;
-    std::map<Name, std::shared_ptr<EMAMeasurements>> m_EMA_interest;
-    NameTree m_dataNameTree;
-    NameTree m_interestNameTree;
+
+  std::map<ndn::Name, ObjectHistory> m_dataHistory;
+  std::map<ndn::Name, ObjectHistory> m_interestHistory;
+  std::map <Name, scheduler::EventId> m_objectExpirationTimer;
+  std::map<Name, std::shared_ptr<EMAMeasurements>> m_EMA_data;
+  std::map<Name, std::shared_ptr<EMAMeasurements>> m_EMA_interest;
+  NameTree m_dataNameTree;
+  NameTree m_interestNameTree;
 };
 } //namespace ams
 } //namespace face

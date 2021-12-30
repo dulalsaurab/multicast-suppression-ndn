@@ -80,7 +80,7 @@ LinkService::sendInterest(const Interest& interest)
     NFD_LOG_INFO ("Interest " <<  interest.getName() << " sent, finally");
     ++this->nOutInterests;
     doSendInterest(interest);
-    m_multicastSuppression.recordInterest(interest);
+    m_multicastSuppression.recordInterest(interest, true);
     if (m_scheduledEntry.count(entry_name) > 0)
       m_scheduledEntry.erase(entry_name);
   });
@@ -119,7 +119,7 @@ LinkService::sendData(const Data& data)
     NFD_LOG_INFO("Sending data finally, via multicast face " << data.getName());
     ++this->nOutData;
     doSendData(data);
-    m_multicastSuppression.recordData(data);
+    m_multicastSuppression.recordData(data, true);
     if(m_scheduledEntry.count(entry_name) > 0)
         m_scheduledEntry.erase(entry_name);
 
@@ -162,7 +162,7 @@ LinkService::receiveInterest(const Interest& interest, const EndpointId& endpoin
     // check if a same interest is scheduled, if so drop it
     if (cancelIfSchdeuled(interest.getName(), 0))
       NDN_LOG_INFO("Interest drop, Interest " << interest.getName() << " overheard, duplicate forwarding dropped");
-    m_multicastSuppression.recordInterest(interest);
+    m_multicastSuppression.recordInterest(interest, false);
   }
   ++this->nInInterests;
   afterReceiveInterest(interest, endpoint);
@@ -182,7 +182,7 @@ LinkService::receiveData(const Data& data, const EndpointId& endpoint)
     if (cancelIfSchdeuled(data.getName(), 0)) // also can drop interest if shceduled for this data
       NDN_LOG_INFO("Interest drop, Data " << data.getName() << " overheard, drop the corresponding scheduled interest"); 
     
-    m_multicastSuppression.recordData(data);
+    m_multicastSuppression.recordData(data, false);
   }
 
   ++this->nInData;

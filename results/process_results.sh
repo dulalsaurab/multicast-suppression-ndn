@@ -2,6 +2,8 @@
 
 result_folder=$1
 
+echo $result_folder
+
 result_dir="/tmp/minindn"
 #result_dir=$2
 
