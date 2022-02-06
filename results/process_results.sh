@@ -1,13 +1,11 @@
 #!/bin/bash
 
-result_folder=$1
+result_folder=$2
 
 echo $result_folder
 
-result_dir="/tmp/minindn"
-#result_dir=$2
-
-mkdir -p $result_folder && cd $result_folder
+# result_dir="/tmp/minindn"
+result_dir=$1
 
 solicited=$(for i in `ls $result_dir/*/log/nfd.log`; do cat $i|grep "soli"|grep /file |wc -l;done;)
 data=$(for i in `ls $result_dir/*/log/nfd.log`; do cat $i|grep "Multicast data" |wc -l; done;)
@@ -18,6 +16,7 @@ interest_from_app=$(for i in `ls $result_dir/*/log/nfd.log`; do cat $i|grep "in=
 drop_dup_data=$(for i in `ls $result_dir/*/log/nfd.log`; do cat $i|grep "Data drop" |wc -l;done;)
 drop_dup_interest=$(for i in `ls $result_dir/*/log/nfd.log`; do cat $i|grep "Interest drop" |wc -l;done;)
 
+mkdir -p $result_folder && cd $result_folder
 
 echo "p" "c1" "c2" "c3"> table.dat
 echo $interest_from_app >>table.dat

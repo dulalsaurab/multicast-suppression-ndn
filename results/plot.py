@@ -4,7 +4,9 @@ import sys
 import pandas as pd
 
 root_dir = sys.argv[1]
+img_name = sys.argv[2]
 
+print (root_dir)
 # interest statistics
 df = []
 for i in [2,3,4]:
@@ -34,7 +36,7 @@ for i, x in enumerate(axes):
     x2 =x.twinx()
     x2.set_ylabel('ewma', fontsize='small')
 
-    # x.set_xticklabels([100, 200, 300, 400, 500, 600]) 
+    # x.set_xticklabels([100, 200, 300, 400, 500, 600])
     df_t = df[i]['ema'].apply(lambda x: x)
     df_t.plot(ax=x2, kind='line', y='ewma', color='g', label="ewma")
 
@@ -42,4 +44,4 @@ for i, x in enumerate(axes):
     # df_t1.plot(ax=x, kind='line', linestyle='dashed', y='ema', color='g')
     # x2.legend([st])
     x2.legend()
-plt.savefig('after-fix.png', bbox_inches='tight')
+plt.savefig(img_name, bbox_inches='tight')

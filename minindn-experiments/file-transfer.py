@@ -50,7 +50,7 @@ if __name__ == '__main__':
     args = ndnwifi.args
 
     # testFile = "/home/mini-ndn/europa_bkp/mini-ndn/ndndump.txt"
-    testFile = "/home/mini-ndn/europa_bkp/mini-ndn/sdulal/multicast-supression-ndn/files/output.dat"
+    testFile = "/home/mini-ndn/europa_bkp/mini-ndn/sdulal_new/multicast-supression-ndn/files/output.dat"
     a = ndnwifi.net["sta1"]
     b = ndnwifi.net["sta2"]
     c = ndnwifi.net["sta3"]
