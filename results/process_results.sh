@@ -12,7 +12,14 @@ data=$(for i in `ls $result_dir/*/log/nfd.log`; do cat $i|grep "Multicast data" 
 interest=$(for i in `ls $result_dir/*/log/nfd.log`; do cat $i|grep "Multicast int" |wc -l; done;)
 interest_sent=$(for i in `ls $result_dir/*/log/nfd.log`; do cat $i|grep "finally" | grep "Interest"|wc -l;done;)
 data_sent=$(for i in `ls $result_dir/*/log/nfd.log`; do cat $i|grep "data finally"|grep /file |wc -l;done;)
-interest_from_app=$(for i in `ls $result_dir/*/log/nfd.log`; do cat $i|grep "in=(260"|wc -l;done;)
+
+# this can be better
+interest_from_app=$(for i in `ls $result_dir/*/log/nfd.log`; do cat $i|grep "in=(261\|in=(260" | grep "onIncomingInterest" | grep /file |wc -l;done;)
+# echo $interest_from_app
+# if [ "$interest_from_app" -eq "0" ]; then
+#    interest_from_app=$(for i in `ls $result_dir/*/log/nfd.log`; do cat $i|grep "onIncomingInterest in=(261"|wc -l;done;)
+# fi
+
 drop_dup_data=$(for i in `ls $result_dir/*/log/nfd.log`; do cat $i|grep "Data drop" |wc -l;done;)
 drop_dup_interest=$(for i in `ls $result_dir/*/log/nfd.log`; do cat $i|grep "Interest drop" |wc -l;done;)
 
