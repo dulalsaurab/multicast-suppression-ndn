@@ -1,11 +1,16 @@
 #!/bin/bash
 
 result_folder=$2
+result_dir=$1
+
+if [[ !$result_folder ]]
+then
+ result_folder=$1
+fi
 
 echo $result_folder
 
 # result_dir="/tmp/minindn"
-result_dir=$1
 
 solicited=$(for i in `ls $result_dir/*/log/nfd.log`; do cat $i|grep "soli"|grep /file |wc -l;done;)
 data=$(for i in `ls $result_dir/*/log/nfd.log`; do cat $i|grep "Multicast data" |wc -l; done;)
