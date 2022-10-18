@@ -34,7 +34,13 @@ import random
 
 def sendFile(node, prefix, file):
     info ("File published: {}\n".format(file))
+    
+    # ndn6-file-server /prefix /directory
+
     cmd = 'ndnputchunks {}/{} < {} > putchunks.log 2>&1 &'.format(prefix, "fname", file)
+    
+    # cmd = 'ndn6-file-server /{}/{} /{} 2> putchunks.log 2>&1 &'.format(prefix, "fname", file)
+    
     node.cmd(cmd)
     # Sleep for appropriate time based on the file size
     sleep(10)
@@ -51,10 +57,10 @@ if __name__ == '__main__':
 
     # testFile = "/home/mini-ndn/europa_bkp/mini-ndn/ndndump.txt"
     testFile = "/home/mini-ndn/europa_bkp/mini-ndn/sdulal_new/multicast-supression-ndn/files/output.dat"
-    a = ndnwifi.net["sta1"]
-    b = ndnwifi.net["sta2"]
-    c = ndnwifi.net["sta3"]
-    d = ndnwifi.net["sta4"]
+    # a = ndnwifi.net["sta1"]
+    # b = ndnwifi.net["sta2"]
+    # c = ndnwifi.net["sta3"]
+    # d = ndnwifi.net["sta4"]
     # e = ndnwifi.net["sta5"]
 
     i = 1024
@@ -64,19 +70,22 @@ if __name__ == '__main__':
         node.cmd(cmd)
     sleep(1)
 
-    nodes = {"sta1" : "/file/temp1", "sta2":"b" , "sta3":"/file/temp2", "sta4":"d"}
+    nodes = {"sta1" : "/file/temp1", "sta2":"b" , "sta3":"/file/temp2", "sta4":"d", "sta5":"e"}
     ndnwifi.start()
     info("Starting NFD")
-    sleep(2)
     nfds = AppManager(ndnwifi, ndnwifi.net.stations, Nfd, logLevel='DEBUG')
+    sleep(2)
 
     mcast = "224.0.23.170"
+
     producers = [ndnwifi.net["sta1"]] #, ndnwifi.net["sta3"]]
-    consumers = [y  for y in ndnwifi.net.stations if y.name not in [x.name for x in producers]]
+    consumers = [y for y in ndnwifi.net.stations if y.name not in [x.name for x in producers]]
+
+    print ("consumer", consumers)
 
     for c in consumers:
         Nfdc.registerRoute (c, "/file", mcast)
-        sleep(1)
+    sleep(2)
 
     for p in producers:
         sendFile(p, nodes[p.name], testFile)

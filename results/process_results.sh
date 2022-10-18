@@ -19,7 +19,7 @@ interest_sent=$(for i in `ls $result_dir/*/log/nfd.log`; do cat $i|grep "finally
 data_sent=$(for i in `ls $result_dir/*/log/nfd.log`; do cat $i|grep "data finally"|grep /file |wc -l;done;)
 
 # this can be better
-interest_from_app=$(for i in `ls $result_dir/*/log/nfd.log`; do cat $i|grep "in=(261\|in=(260" | grep "onIncomingInterest" | grep /file |wc -l;done;)
+interest_from_app=$(for i in `ls $result_dir/*/log/nfd.log`; do cat $i|grep "in=261\|in=260" | grep "onIncomingInterest" | grep /file |wc -l;done;)
 # echo $interest_from_app
 # if [ "$interest_from_app" -eq "0" ]; then
 #    interest_from_app=$(for i in `ls $result_dir/*/log/nfd.log`; do cat $i|grep "onIncomingInterest in=(261"|wc -l;done;)
@@ -30,7 +30,7 @@ drop_dup_interest=$(for i in `ls $result_dir/*/log/nfd.log`; do cat $i|grep "Int
 
 mkdir -p $result_folder && cd $result_folder
 
-echo "p" "c1" "c2" "c3"> table.dat
+echo "p" "c1" "c2" "c3" > table.dat
 echo $interest_from_app >>table.dat
 echo $interest >> table.dat
 echo $data >> table.dat

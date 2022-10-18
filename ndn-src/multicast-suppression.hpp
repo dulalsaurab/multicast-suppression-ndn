@@ -19,7 +19,7 @@ public:
 
   NameTree();
 
-  void 
+  void
   insert(std::string prefix, double value);
 
   double
@@ -85,6 +85,8 @@ private:
   scheduler::EventId m_expirationId;
   double m_computedMaxSuppressionTime;
   int m_lastDuplicateCount;
+  int m_maxDuplicateCount;
+  double m_minSuppressionTime;
   double m_ssthress;
   int ignore;
 };
@@ -131,7 +133,7 @@ public:
   NameTree*
   getNameTree(char type)
   {
-    return (type =='i') ? &m_interestNameTree : &m_dataNameTree; 
+    return (type =='i') ? &m_interestNameTree : &m_dataNameTree;
   }
 
   bool
