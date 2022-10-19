@@ -34,13 +34,13 @@ import random
 
 def sendFile(node, prefix, file):
     info ("File published: {}\n".format(file))
-    
+
     # ndn6-file-server /prefix /directory
 
     cmd = 'ndnputchunks {}/{} < {} > putchunks.log 2>&1 &'.format(prefix, "fname", file)
-    
+
     # cmd = 'ndn6-file-server /{}/{} /{} 2> putchunks.log 2>&1 &'.format(prefix, "fname", file)
-    
+
     node.cmd(cmd)
     # Sleep for appropriate time based on the file size
     sleep(10)
@@ -55,8 +55,8 @@ if __name__ == '__main__':
     ndnwifi = MinindnWifi()
     args = ndnwifi.args
 
-    # testFile = "/home/mini-ndn/europa_bkp/mini-ndn/ndndump.txt"
-    testFile = "/home/mini-ndn/europa_bkp/mini-ndn/sdulal_new/multicast-supression-ndn/files/output.dat"
+    testFile = "/home/map901/sdulal/multicast-suppression-ndn/files/output.dat"
+    # testFile = "/home/mini-ndn/europa_bkp/mini-ndn/sdulal_new/multicast-supression-ndn/files/output.dat"
     # a = ndnwifi.net["sta1"]
     # b = ndnwifi.net["sta2"]
     # c = ndnwifi.net["sta3"]
