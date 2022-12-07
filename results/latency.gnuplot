@@ -1,55 +1,44 @@
 #!/bin/bash
 
 # result_dir=$1
+set terminal pdf
+set output "latency.pdf"
 
-# set terminal pdf
-# set output "st.pdf"
-
-set ylabel 'count' font "Times-Roman,9"
-set xlabel 'time (at c1)' font "Times-Roman,9"
 set grid
-set term png
-set terminal pngcairo
-set output 'latency.png'
+# set term png
+# set terminal pngcairo
+# set output 'latency.png'
 
 resutl_dir= ''
 set key autotitle columnhead
 
+# set multiplot layout 4,1 title "Goodput and Total transfer time"
+
 #set datafile-seperator comma
-set datafile separator "," # separator 2
+# set datafile separator "," # separator 2
 # set timefmt '%s'
 
-# set multiplot layout 3,1 title "Interest dc/ema over time"
+set multiplot layout 2,1
+
+set logscale y 2
+# set logscale x 10
 
 set tics font "Helvetica,10"
 set key font ",8"
 
-# set yrange [0:1];
-# set xrange [1:200];
-# #set xtics 0,10,300
-# set ytics 0,100,350
+set xrange [0:658]
+set yrange [0.05:2]
+# set ytics (0, 0.2, 0.4, 0.8, 1.6, 2)
 
-# `paste -d "," w_s_1p3c w_o_s_1p3c | awk -F "," '{print $1 "," $5/$10}' > f.dat`
+set ylabel 'delay stretch' font "Times-Roman,9" offset 3.3,0
+set xlabel 'sequence number' font "Times-Roman,9" offset 0,0.5
 
+set key horizontal font "Helvetica, 8" width 2 at graph 0.5, graph 0.2 center maxrows 1
 
-plot 'check00' using 2:5 with lines title 'w/ sup'
-     # 'w_o_s_1p3c' using 1:5 with lines title 'w/o sup', \
-     # 'w_s_1p3c' with linespoints linestyle 1, \
+plot  'stretch.dat' using 1:3 with linespoints pointinterval 30 pointsize 0.5 title '2c', \
+      'stretch.dat' using 1:4 with linespoints pointinterval 30 pointsize 0.5 title '3c', \
+      'stretch.dat' using 1:5 with linespoints pointinterval 30 pointsize 0.5 title '4c', \
+      'stretch.dat' using 1:6 with linespoints pointinterval 30 pointsize 0.5 title '5c', \
+      'stretch.dat' using 1:7 with linespoints pointinterval 30 pointsize 0.5 title '6c', \
+      'stretch.dat' using 1:8 with linespoints pointinterval 30 pointsize 0.5 title '7c', \
 
-# #set title '@ (c1)'
-# set xlabel 'time (at c1)' font "Times-Roman,9"
-# plot '/tmp/minindn/2.interest' using 0:2 title 'dc' with lines, \
-#      '/tmp/minindn/2.interest' using 0:3 title 'st' with lines,\
-
-
-# #set title '@ (c2)'
-# set xlabel 'time (at c2)' font "Times-Roman,9"
-# plot '/tmp/minindn/3.interest' using 0:2 title 'dc' with lines, \
-#      '/tmp/minindn/3.interest' using 0:3 title 'ema' with lines,\
-
-
-# set xlabel 'time (at c3)' font "Times-Roman,9"
-# plot '/tmp/minindn/4.interest' using 0:2 title 'dc' with lines, \
-#      '/tmp/minindn/4.interest' using 0:3 title 'ema' with lines,\
-
-   #set output
