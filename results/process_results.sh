@@ -30,7 +30,7 @@ drop_dup_interest=$(for i in `ls $result_dir/*/log/nfd.log`; do cat $i|grep "Int
 
 mkdir -p $result_folder && cd $result_folder
 
-echo "p" "c1" "c2" "c3" > table.dat
+echo "p" "c1" "c2" "c3" "c4" "c5" "c6" "c7"> table.dat
 echo $interest_from_app >>table.dat
 echo $interest >> table.dat
 echo $data >> table.dat

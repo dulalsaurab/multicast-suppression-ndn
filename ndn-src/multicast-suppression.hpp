@@ -16,12 +16,14 @@ public:
   std::map<char, NameTree*> children;
   bool isLeaf;
   double suppressionTime;
+  // double minSuppressionTime;
 
   NameTree();
 
   void
   insert(std::string prefix, double value);
 
+  // std::pair<double, double>
   double
   longestPrefixMatch(const std::string& prefix); //longest prefix match
 
@@ -76,6 +78,12 @@ public:
   setSSthress(double val, int factor = 2)
   {
     m_ssthress = val/factor;
+  }
+
+  double
+  getMinimumSuppressionTime()
+  {
+    return m_minSuppressionTime;
   }
 
 private:

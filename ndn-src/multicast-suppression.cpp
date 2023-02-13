@@ -18,7 +18,7 @@ namespace ams {
 NFD_LOG_INIT(MulticastSuppression);
 
 double DISCOUNT_FACTOR = 0.125;
-double MAX_PROPOGATION_DELAY = 15;
+double MAX_PROPOGATION_DELAY = 6;
 const time::milliseconds MAX_MEASURMENT_INACTIVE_PERIOD = 300_s; // 5 minutes
 
 /* This is 2*MAX_PROPOGATION_DELAY.  Basically, when a nodes (C1) forwards a packet, it will take 15ms to reach
@@ -27,14 +27,14 @@ if the neighbor didnt received the packet from C1 in 15 ms, it will forward its 
 in the network is 2, both nodes C1 & C2 should record dc = 2. For this to happen, it takes about 15ms for the packet from C2 to
 reach C1. Thus, DEFAULT_INSTANT_LIFETIME = 30ms*/
 
-const time::milliseconds DEFAULT_INSTANT_LIFETIME = 30_ms; // 2*MAX_PROPOGATION_DELAY
+const time::milliseconds DEFAULT_INSTANT_LIFETIME = 12_ms; // 2*MAX_PROPOGATION_DELAY
 const double DUPLICATE_THRESHOLD = 1.5; // parameter to tune
 const double ADATIVE_DECREASE = 5.0;
 const double MULTIPLICATIVE_INCREASE = 1.3;
 
 // in milliseconds ms
 // probably we need to provide sufficient time for other party to hear you?? MAX_PROPAGATION_DELAY??
-const double minSuppressionTime = 15.0f;
+const double minSuppressionTime = 6.0f;
 const double maxSuppressionTime= 15000.0f;
 static bool seeded = false;
 
@@ -83,8 +83,10 @@ NameTree::insert(std::string prefix, double value)
     if (!node->children[index])
       node->children[index] = new NameTree();
 
-    if (i == prefix.length() - 1)
-    node->suppressionTime = value;
+    if (i == prefix.length() - 1) {
+      node->suppressionTime = value;
+      // node->suppressionTime = minSuppressionTime;
+    }
 
     node = node->children[index];
   }
@@ -92,26 +94,36 @@ NameTree::insert(std::string prefix, double value)
   node->isLeaf = true;
 }
 
+// std::pair<double, double>
 double
 NameTree::longestPrefixMatch(const std::string& prefix) // longest prefix match
 {
   auto node = this;
   double lastValueFound = UNSET;
+  // double minSuppressionTime = 0;
   for (unsigned int i=0; i < prefix.length(); i++)
   {
     auto index = prefix[i] - 'a';
     if (prefix[i+1] == '/') // key at i is the available prefix if the next item is /
-      lastValueFound = node->suppressionTime;
+      {
+        lastValueFound = node->suppressionTime;
+        // minSuppressionTime = node->minSuppressionTime;
+      }
 
     if (!node->children[index])
       return lastValueFound;
+      // return std::make_pair(lastValueFound, minSuppressionTime);
 
     if (i == prefix.length() - 1)
-      lastValueFound = node->suppressionTime;
+      {
+        lastValueFound = node->suppressionTime;
+        // minSuppressionTime = node->minSuppressionTime;
+      }
 
     node = node->children[index];
   }
   return lastValueFound;
+  // return std::make_pair(lastValueFound, minSuppressionTime);;
 }
 
 time::milliseconds
@@ -120,6 +132,10 @@ NameTree::getSuppressionTimer(const std::string& name)
   double val, suppressionTime;
   val = longestPrefixMatch(name);
   suppressionTime = (val == UNSET) ? minSuppressionTime : val;
+  // if (suppressionTime == 0) {
+    // NDN_LOG_INFO("suppression time is zero");
+    // return time::milliseconds (0);
+  // }
   time::milliseconds suppressionTimer (getRandomNumber(static_cast<int> (2*suppressionTime))); // timer is randomized value
   NFD_LOG_INFO("Suppression time: " << suppressionTime << " Suppression timer: " << suppressionTimer);
   return suppressionTimer;
@@ -175,12 +191,12 @@ EMAMeasurements::addUpdateEMA(int duplicateCount, bool wasForwarded)
     // if this node hadn't forwarded don't update the delay timer ???
   }
   if (m_maxDuplicateCount < duplicateCount) { m_maxDuplicateCount = duplicateCount; }
-  
+
   if (m_maxDuplicateCount > 1)
     this->m_minSuppressionTime = (float) MAX_PROPOGATION_DELAY;
   else if (m_maxDuplicateCount == 1 && this->m_minSuppressionTime > 1)
       this->m_minSuppressionTime--;
-  
+
   updateDelayTime(wasForwarded);
 
   NFD_LOG_INFO("Moving average" << " before: " << m_expMovingAveragePrev
@@ -275,7 +291,7 @@ MulticastSuppression::recordData(Data data, bool isForwarded)
         2. previously received, now received:  increase counter, not the flag
         3. previously forwaded, now trying to forward: ignore, no need to increase the counter (only for data forwading)
           (if only one node, need to forward anyway as soon as possible)
-        3. previously received, now trying to forward: increase counter, update flag 
+        3. previously received, now trying to forward: increase counter, update flag
       */
       if (!getForwardedStatus(name, 'd') && isForwarded) {
         NFD_LOG_INFO("Counter for  data " << name << " incremented, but the flag is not updated");
@@ -286,8 +302,8 @@ MulticastSuppression::recordData(Data data, bool isForwarded)
         NFD_LOG_INFO("Counter for  data " << name << " incremented , no change in flag");
         ++it->second.counter;
       }
-      else NFD_LOG_INFO("do nothing"); // do nothing 
-      
+      else NFD_LOG_INFO("do nothing"); // do nothing
+
     }
     // need to check if we have the interest in the map
     // if present, need to remove it from the map
@@ -363,6 +379,7 @@ MulticastSuppression::updateMeasurement(Name name, char type)
       auto& emaEntry = vec->emplace(name, std::make_shared<EMAMeasurements>()).first->second;
       emaEntry->setEMAExpiration(expirationId);
       emaEntry->addUpdateEMA(duplicateCount, wasForwarded);
+      // nameTree->insert(name.toUri(), emaEntry->getCurrentSuppressionTime(), emaEntry->getMinimumSuppressionTime());
       nameTree->insert(name.toUri(), emaEntry->getCurrentSuppressionTime());
     }
     // update existing record
@@ -388,6 +405,7 @@ MulticastSuppression::getDelayTimer(Name name, char type)
 {
   NFD_LOG_INFO("Getting supperssion timer for name: " << name);
   auto nameTree = getNameTree(type);
+
   auto suppressionTimer = nameTree->getSuppressionTimer(name.getPrefix(-1).toUri());
   NFD_LOG_INFO("Suppression timer for name: " << name << " and type: "<< type << " = " << suppressionTimer);
   return suppressionTimer;
