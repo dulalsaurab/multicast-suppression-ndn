@@ -59,8 +59,6 @@ class MulticastEnvironment():
   def _reset(self):
     pass
 
-# need to compute the reward for an interval
-# A1, --- after 5ms -- compute reward:  A2,  
   def _get_reward(self, dup_count, prev_act_timestamp):
     # time_in_sec = abs (int ((time.time() - prev_act_timestamp) * 1000))
     # reward = - dup_count/(time_in_sec*time_in_sec + 1)
@@ -127,15 +125,3 @@ class _Embedding():
 
     def get_embedding(self, words_id):
         return self.embed_model.predict(words_id) 
-
-# process the above names
-if __name__ == "__main__":
-    # env = MulticastEnvironment()
-    # print(env.sample_action())
-    pass
-
-
-
-    '''
-    comments: we can decrease the input size, 12 seem very big, for obj -- make 3, and delay 1 --- and dub -- 1  in total 5
-    '''
