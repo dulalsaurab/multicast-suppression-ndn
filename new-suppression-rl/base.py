@@ -112,7 +112,7 @@ if __name__ == "__main__":
             mcast_sup.agent.learn(memory.prev_observation, reward, new_observation, done)
 
         counter = counter+1
-        
+
         # update memory
  		memory.store(new_observation, action, reward)
         memory.prefix_dict[name_prefix] = [srtt, ewma]

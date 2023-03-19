@@ -31,13 +31,24 @@ class Agent:
     def load_models(self):
         print('... loading models ...')
         self.actor_critic.load_weights(self.actor_critic.checkpoint_file)
-        
+    
+
+    # learn the policy
     def learn(self, state, reward, state_, done):
     	state = tf.convert_to_tensor([state], dtype=tf.float32)
     	state_ = tf.convert_to_tensor([state_], dtype=tf.float32)
     	reward = tf.convert_to_tensor([reward], dtype=tf.float32)
     	done = tf.convert_to_tensor([int(done)], dtype=tf.float32)
+        
+        '''
+        GradientTape is a TensorFlow tool that is used for automatic differentiation. 
+        It allows you to record operations that are performed on tensors, and then 
+        compute the gradients of any variables with respect to the recorded operations.
 
+        GradientTape is often used to compute the gradients of the policy and value functions 
+        with respect to the loss function, which allows the weights of the neural network 
+        to be updated in a direction that improves the performance of the agent.
+        '''
     	with tf.GradientTape() as tape:
 	        # Compute predicted value and action probabilities
 	        value, probs = self.actor_critic(state)
