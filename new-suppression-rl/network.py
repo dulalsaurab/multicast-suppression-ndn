@@ -24,27 +24,27 @@ as outputs of the call() method.
 
 '''
 class ActorCriticNetwork(keras.Model):
-    def __init__(self, n_actions, fc1_dims=1024, fc2_dims=512,
-            name='actor_critic', chkpt_dir='tmp/actor_critic'):
-        super(ActorCriticNetwork, self).__init__()
-        self.fc1_dims = fc1_dims
-        self.fc2_dims = fc2_dims
-        self.n_actions = n_actions
-        self.model_name = name
-        self.checkpoint_dir = chkpt_dir
-        self.checkpoint_file = os.path.join(self.checkpoint_dir, name+'_ac')
-        
-        self.fully_connected_1 = Dense(self.fc1_dims, activation='relu')
-        self.fully_connected_2 = Dense(self.fc2_dims, activation='relu')
-        
-        self.value_function = Dense(1, activation=None)                  # value function, single value with no activation
-        self.action_probabilities = Dense(n_actions, activation=None)     # policy pi with no activation
+  def __init__(self, n_actions, fc1_dims=1024, fc2_dims=512,
+               name='actor_critic', chkpt_dir='tmp/actor_critic'):
+    super(ActorCriticNetwork, self).__init__()
+    self.fc1_dims = fc1_dims
+    self.fc2_dims = fc2_dims
+    self.n_actions = n_actions
+    self.model_name = name
+    self.checkpoint_dir = chkpt_dir
+    self.checkpoint_file = os.path.join(self.checkpoint_dir, name+'_ac')
+    
+    self.fully_connected_1 = Dense(self.fc1_dims, activation='relu')
+    self.fully_connected_2 = Dense(self.fc2_dims, activation='relu')
+    
+    self.value_function = Dense(1, activation=None)                  # value function, single value with no activation
+    self.action_probabilities = Dense(n_actions, activation=None)     # policy pi with no activation
 
-    def call(self, state):
-        # forward pass
-        value = self.fully_connected_1(state)
-        value = self.fully_connected_2(value)
+  def call(self, state):
+    # forward pass
+    value = self.fully_connected_1(state)
+    value = self.fully_connected_2(value)
 
-        value_function = self.value_function(value)
-        action_probs = self.action_probabilities(value)
-        return value_function, action_probs
+    value_function = self.value_function(value)
+    action_probs = self.action_probabilities(value)
+    return value_function, action_probs

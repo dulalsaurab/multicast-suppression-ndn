@@ -1,40 +1,17 @@
-#!/home/mini-ndn/miniconda/envs/tf/bin/python python
 import os
 import time
-# from watchdog.observers import Observer
-# from watchdog.events import FileSystemEventHandler
 from sys import argv, exit
 import io
 
-# import gym
 import numpy as np
 from agent import Agent
-# from utils import plot_learning_curve
-# from gym import wrappers
 import environment as e
 from environment import _Embedding, MulticastEnvironment
 import tensorflow as tf
 
-fifo_suppression_value = 'fifo_suppression_value' #we don't care if this file is chaged because we write to this file
+fifo_suppression_value = 'fifo_suppression_value'
 fifo_object_details = 'fifo_object_details'
 num = 0
-
-# class FileModifiedHandler(FileSystemEventHandler):
-#     def __init__(self, path, file_name, callback):
-#         self.file_name = file_name
-#         self.callback = callback
-
-#         # set observer to watch for changes in the directory
-#         self.observer = Observer()
-#         self.observer.schedule(self, path, recursive=False)
-#         self.observer.start()
-#         self.observer.join()
-
-#     def on_modified(self, event): 
-#         # only act on the change that we're looking for
-#         if not event.is_directory and event.src_path.endswith(self.file_name):
-#             self.observer.stop() # stop watching
-#             self.callback() # call callback
 
 def fifo_write(action):
     print ("Sending suppression time to nfd")
