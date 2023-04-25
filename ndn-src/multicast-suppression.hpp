@@ -9,6 +9,12 @@ namespace nfd {
 namespace face {
 namespace ams {
 
+int
+getSeed();
+
+int
+getRandomNumber(int upperBound);
+
 /* Simple trie implementaiton for the name tree, and prefix match */
 class NameTree
 {

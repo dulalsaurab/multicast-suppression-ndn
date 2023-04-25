@@ -26,11 +26,12 @@
 #ifndef NFD_DAEMON_FACE_LINK_SERVICE_HPP
 #define NFD_DAEMON_FACE_LINK_SERVICE_HPP
 
+#include "multicast-suppression.hpp"
+
 #include "face-common.hpp"
 #include "transport.hpp"
 #include "common/counter.hpp"
 #include <ndn-cxx/util/scheduler.hpp>
-#include "multicast-suppression.hpp"
 
 #include "common/global.hpp"
 // #include "common/logger.hpp"
@@ -196,7 +197,7 @@ protected: // upper interface to be invoked in subclass (receive path terminatio
   }
 
   bool
-  cancelIfSchdeuled(Name name, int type);
+  cancelIfSchdeuled(Name name, uint8_t objectType);
 
 protected: // lower interface to be invoked in subclass (send path termination)
   /** \brief Send a lower-layer packet via Transport.
@@ -231,8 +232,10 @@ private: // lower interface to be overridden in subclass
 private:
   Face* m_face;
   Transport* m_transport;
-  nfd::face::ams::MulticastSuppression m_multicastSuppression;
+  // nfd::face::ams::MulticastSuppression m_multicastSuppression;
   std::map <ndn::Name, const scheduler::EventId > m_scheduledEntry;
+  std::unordered_set<ndn::Name> overheardInterests;
+  std::unordered_set<ndn::Name> overheardData;
 };
 
 inline ssize_t

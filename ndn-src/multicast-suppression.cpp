@@ -132,11 +132,11 @@ NameTree::getSuppressionTimer(const std::string& name)
   or start with 1ms, and let node find stable suppression time region?
 */
 EMAMeasurements::EMAMeasurements(double expMovingAverage = 0, uint8_t lastDuplicateCount = 0, double suppressionTime = 1)
-: m_expMovingAveragePrev (expMovingAverage)
-, m_expMovingAverageCurrent (expMovingAverage)
+: m_expMovingAveragePrev(expMovingAverage)
+, m_expMovingAverageCurrent(expMovingAverage)
 , m_currentSuppressionTime(suppressionTime)
 , m_lastDuplicateCount(lastDuplicateCount)
-, m_maxDuplicateCount (1)
+, m_maxDuplicateCount(1)
 , m_minSuppressionTime(minSuppressionTime)
 , m_ignoreDuplicateRecoring(0)
 {
