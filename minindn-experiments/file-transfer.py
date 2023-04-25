@@ -48,7 +48,9 @@ nodes = {
     "sta5": {"position": (30,30,0)}, 
     "sta6": {"position": (10,30,0)}, 
     "sta7": {"position": (0,20,0)}, 
-    "sta8": {"position": (30,20,0)}
+    "sta8": {"position": (30,20,0)},
+    "sta9": {"position": (30,10,0)},
+    "sta10": {"position": (10,20,0)}
 }
 
 accessPoint = {"ap1": {"position": (20,20,0), "range": 100}}

@@ -13,17 +13,16 @@ namespace ams {
 class NameTree
 {
 public:
-  std::map<char, NameTree*> children;
+  // std::map<char, NameTree*> children;
+  std::map<char, std::unique_ptr<NameTree>> children;
   bool isLeaf;
   double suppressionTime;
-  // double minSuppressionTime;
 
   NameTree();
 
   void
-  insert(std::string prefix, double value);
+  insert(const std::string& prefix, double value);
 
-  // std::pair<double, double>
   double
   longestPrefixMatch(const std::string& prefix); //longest prefix match
 
@@ -36,10 +35,10 @@ class EMAMeasurements
 {
 
 public:
-  EMAMeasurements(double expMovingAverage, int lastDuplicateCount, double suppressionTime);
+  EMAMeasurements(double expMovingAverage, uint8_t lastDuplicateCount, double suppressionTime);
 
   void
-  addUpdateEMA(int duplicateCount, bool wasForwarded);
+  addUpdateEMA(uint8_t duplicateCount, bool wasForwarded);
 
   scheduler::EventId&
   getEMAExpiration()
@@ -74,29 +73,16 @@ public:
     return m_currentSuppressionTime;
   }
 
-  void
-  setSSthress(double val, int factor = 2)
-  {
-    m_ssthress = val/factor;
-  }
-
-  double
-  getMinimumSuppressionTime()
-  {
-    return m_minSuppressionTime;
-  }
-
 private:
   double m_expMovingAveragePrev;
   double m_expMovingAverageCurrent;
   double m_currentSuppressionTime;
   scheduler::EventId m_expirationId;
-  double m_computedMaxSuppressionTime;
-  int m_lastDuplicateCount;
-  int m_maxDuplicateCount;
+  uint8_t m_lastDuplicateCount;
+  uint8_t m_maxDuplicateCount;
   double m_minSuppressionTime;
   double m_ssthress;
-  int ignore;
+  uint8_t m_ignoreDuplicateRecoring;
 };
 
 
@@ -106,17 +92,17 @@ public:
 
   struct ObjectHistory
   {
-    int counter;
+    uint8_t counter;
     bool isForwarded;
   };
 
   void
-  recordInterest(const Interest interest, bool isForwarded = false);
+  recordInterest(const Interest& interest, bool isForwarded = false);
 
   void
-  recordData(const Data data, bool isForwarded = false);
+  recordData(const Data& data, bool isForwarded = false);
 
-  int
+  uint8_t
   getDuplicateCount(const Name name, char type)
   {
     auto temp_map = getRecorder(type);
@@ -145,14 +131,14 @@ public:
   }
 
   bool
-  interestInflight(const Interest interest) const
+  interestInflight(const Interest& interest) const
   {
     auto name = interest.getName();
     return (m_interestHistory.find(name) != m_interestHistory.end() );
   }
 
   bool
-  dataInflight(const Data data) const
+  dataInflight(const Data& data) const
   {
     auto name = data.getName();
     return (m_dataHistory.find(name) != m_dataHistory.end());
@@ -167,7 +153,7 @@ getRandomTime()
 void
 updateMeasurement(Name name, char type);
 
-// set interest or data expiration
+// Set interest or data expiration
 void
 setUpdateExpiration(time::milliseconds entryLifetime, Name name, char type);
 
@@ -175,15 +161,15 @@ time::milliseconds
 getDelayTimer(Name name, char type);
 
 bool
-getForwardedStatus(ndn::Name prefix, char type)
+getForwardedStatus(const ndn::Name& prefix, char type)
 {
   auto recorder = getRecorder(type);
   auto it = recorder->find(prefix);
-  return it != recorder->end() ? it->second.isForwarded : false; // if record exist, send whatever is the status else send false
+  // if record exist, send whatever is the status else, send false
+  return it != recorder->end() ? it->second.isForwarded : false;
 }
 
 private:
-
   std::map<ndn::Name, ObjectHistory> m_dataHistory;
   std::map<ndn::Name, ObjectHistory> m_interestHistory;
   std::map <Name, scheduler::EventId> m_objectExpirationTimer;
