@@ -39,7 +39,7 @@ def process_chunks_log(root_dir, consumers):
             _c = int([*cp_dir][2])
             cp_dir_list[sup_dir].append(cp_dir)
             consumers = ["sta{}".format(x+1) for x in range(1,_c+1)]
-            
+
             print(take_d)
             exit()
 
@@ -55,7 +55,7 @@ def process_chunks_log(root_dir, consumers):
 
                             if "Goodput" in line:
                                 result['goodput'].append(float(line.split()[1]))
-                            
+
                             if "Retransmitted segments" in line:
                                 result['retrans'].append(float(line.split()[2]))
 
@@ -118,7 +118,7 @@ def compute_delay(root_dir, consumers, type):
 
 def get_latency(ws_dir, wos_dir, consumers):
 
-    res_ws = compute_delay(ws_dir, consumers, "ws") 
+    res_ws = compute_delay(ws_dir, consumers, "ws")
     res_wos = compute_delay(wos_dir, consumers, "wos")
 
     res_dict = {}
@@ -161,7 +161,7 @@ def get_gp_n_time(root, consumers):
 def main():
     ws_dir = sys.argv[1]
     wos_dir = sys.argv[2]
-    
+
     # exit()
     # _c = int([*ws_dir.split("/")[-2]][2])
     _c = 5

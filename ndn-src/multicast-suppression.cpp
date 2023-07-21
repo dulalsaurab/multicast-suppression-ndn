@@ -149,13 +149,13 @@ EMAMeasurements::EMAMeasurements(double expMovingAverage = 0, uint8_t lastDuplic
 */
 void
 EMAMeasurements::addUpdateEMA(uint8_t duplicateCount, bool wasForwarded)
-{ 
+{
   // If duplicate count is greater than last duplicate count, increase the ignore counter
-  // else reset it to 0.  
+  // else reset it to 0.
   m_ignoreDuplicateRecoring  = (duplicateCount > m_lastDuplicateCount) ? (m_ignoreDuplicateRecoring+1) : 0;
 
   if (m_ignoreDuplicateRecoring > 0 && m_ignoreDuplicateRecoring < MAX_IGNORE) {
-    NDN_LOG_INFO("Duplicate count: " << duplicateCount << " m_lastdup: " 
+    NDN_LOG_INFO("Duplicate count: " << duplicateCount << " m_lastdup: "
                   << m_lastDuplicateCount << " ignore counter: " << m_ignoreDuplicateRecoring);
     return;
   }
@@ -170,12 +170,12 @@ EMAMeasurements::addUpdateEMA(uint8_t duplicateCount, bool wasForwarded)
   }
   else {
     // rounding to 2 decimal place
-    m_expMovingAverageCurrent =  round ((DISCOUNT_FACTOR*duplicateCount + 
+    m_expMovingAverageCurrent =  round ((DISCOUNT_FACTOR*duplicateCount +
                                        (1 - DISCOUNT_FACTOR)*m_expMovingAverageCurrent)*10.0)/10.0;
   }
   // Update maximum duplicate count
-  if (m_maxDuplicateCount < duplicateCount) { 
-    m_maxDuplicateCount = duplicateCount; 
+  if (m_maxDuplicateCount < duplicateCount) {
+    m_maxDuplicateCount = duplicateCount;
   }
   // Update min suppression time
   if (m_maxDuplicateCount > 1) {
@@ -183,7 +183,7 @@ EMAMeasurements::addUpdateEMA(uint8_t duplicateCount, bool wasForwarded)
   } else if (m_maxDuplicateCount == 1 && m_minSuppressionTime > 1) {
     m_minSuppressionTime--;
   }
-  
+
   // Update the suppression time, only if this node has forwarded
   updateDelayTime(wasForwarded);
 
@@ -203,7 +203,7 @@ EMAMeasurements::updateDelayTime(bool wasForwarded)
     m_expMovingAverageCurrent >= m_expMovingAveragePrev ) {
     // only increase the suppression timer if this node as forwarded
     temp = (wasForwarded) ? (m_currentSuppressionTime * MULTIPLICATIVE_INCREASE) : m_currentSuppressionTime;
-      
+
   }
   else if (m_expMovingAverageCurrent <= DUPLICATE_THRESHOLD &&
           m_expMovingAverageCurrent <= m_expMovingAveragePrev) {
@@ -265,7 +265,7 @@ MulticastSuppression::recordData(const Data& data, bool isForwarded)
       2. previously received, now received:  increase counter, not the flag
       3. previously forwaded, now trying to forward: ignore, no need to increase the counter (only for data forwading)
         (if only one node, need to forward anyway as soon as possible)
-      3. previously received, now trying to forward: increase counter, update flag 
+      3. previously received, now trying to forward: increase counter, update flag
     */
     if (!getForwardedStatus(name, 'd') && isForwarded) {
       NFD_LOG_INFO("Counter for  data " << name << " incremented, but the flag is not updated");
@@ -277,9 +277,9 @@ MulticastSuppression::recordData(const Data& data, bool isForwarded)
       ++it->second.counter;
     }
     else {
-      NFD_LOG_INFO("do nothing"); // do nothing 
+      NFD_LOG_INFO("do nothing"); // do nothing
     }
-    
+
   }
   // Need to check if we have the interest in the map
   // if present, need to remove it from the map
@@ -289,7 +289,7 @@ MulticastSuppression::recordData(const Data& data, bool isForwarded)
   if (itr_timer != m_objectExpirationTimer.end()) {
     NFD_LOG_INFO("Data overheard, deleting interest " <<name << " from the map");
     itr_timer->second.cancel();
-    
+
     // Schedule deletion now
     if (m_interestHistory.count(name) > 0) {
       updateMeasurement(name, 'i');

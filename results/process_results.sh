@@ -10,6 +10,13 @@ fi
 
 echo $result_folder
 
+number_of_consumer=$(ls $result_dir|wc -l)
+columns=()
+for ((i=5; i<=$number_of_consumer; i++))
+do
+  columns+=(c$i)
+done
+
 # result_dir="/tmp/minindn"
 
 solicited=$(for i in `ls $result_dir/*/log/nfd.log`; do cat $i|grep "soli"|grep /file |wc -l;done;)
@@ -20,6 +27,7 @@ data_sent=$(for i in `ls $result_dir/*/log/nfd.log`; do cat $i|grep "data finall
 
 # this can be better
 interest_from_app=$(for i in `ls $result_dir/*/log/nfd.log`; do cat $i|grep "in=261\|in=260" | grep "onIncomingInterest" | grep /file |wc -l;done;)
+
 # echo $interest_from_app
 # if [ "$interest_from_app" -eq "0" ]; then
 #    interest_from_app=$(for i in `ls $result_dir/*/log/nfd.log`; do cat $i|grep "onIncomingInterest in=(261"|wc -l;done;)
@@ -30,7 +38,10 @@ drop_dup_interest=$(for i in `ls $result_dir/*/log/nfd.log`; do cat $i|grep "Int
 
 mkdir -p $result_folder && cd $result_folder
 
-echo "p" "c1" "c2" "c3" "c4" "c5" "c6" "c7"> table.dat
+# echo "p" "c1" "c2" "c3" "c4" "c5" "c6" "c7"> table.dat
+
+echo "p1 p2 p3 p4 ${columns[@]}" > table.dat
+
 echo $interest_from_app >>table.dat
 echo $interest >> table.dat
 echo $data >> table.dat
