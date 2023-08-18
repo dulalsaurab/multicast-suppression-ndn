@@ -1,25 +1,3 @@
-# -*- Mode:python; c-file-style:"gnu"; indent-tabs-mode:nil -*- */
-#
-# Copyright (C) 2015-2020, The University of Memphis,
-#                          Arizona Board of Regents,
-#                          Regents of the University of California.
-#
-# This file is part of Mini-NDN.
-# See AUTHORS.md for a complete list of Mini-NDN authors and contributors.
-#
-# Mini-NDN is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
-#
-# Mini-NDN is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License
-# along with Mini-NDN, e.g., in COPYING.md file.
-# If not, see <http://www.gnu.org/licenses/>.
 
 from mn_wifi.topo import Topo
 from mininet.log import setLogLevel, info
@@ -45,7 +23,10 @@ import itertools
 
 _F_NAME = "transfer"
 
-rl_dir="/home/map901/sdulal/multicast-suppression-ndn/new-suppression-rl"
+# rl_dir="/home/Desktop/saurabLatestJuly/new-suppression-rl"
+# rl_dir="/home/bidhya/Desktop/saurabLatestJuly/new-suppression-rl"
+rl_dir="/home/bidhya/Desktop/saurabLatestJuly/bidhya-rl"
+
 
 all_nodes = {
     "sta1": {"position": (10,10,0)},
@@ -79,6 +60,8 @@ def write_to_file(filename, _list):
 #     host.cmd("python {} &> reinforcement.log &".format(rl_path))
 #     sleep (5) 
 
+
+# takes all_nodes dictionary and number of consumers and returns the a new dictionary containing the first n items from the input dictionary
 
 def get_first_n_items(dictionary, n):
     return dict(itertools.islice(dictionary.items(), n))
@@ -124,12 +107,13 @@ def receiveFile(node, prefix, filename):
 if __name__ == '__main__':
 
     setLogLevel('info')
-    subprocess.run(["mn", "-c"])
+    subprocess.run(["mn", "-c"]) # ensures that any existing Mininet network is terminated before the script proceeds with setting up a new network topology.
     sleep (1)
-    shutil.rmtree('/tmp/minindn/', ignore_errors=True)
+    shutil.rmtree('/tmp/minindn/', ignore_errors=True) # utility functions in python to remove a directory tree
     os.makedirs("/tmp/minindn/", exist_ok=True)
 
-    topo = Topo()
+    topo = Topo() # creates an instance of the Topo class, 
+    #which is provided by the Mininet-WiFi library. The Topo class is used to define the network topology in a Mininet-WiFi simulation.
 
     if len(sys.argv) < 2:
         print ("Missing argument for the number of consumers")
@@ -137,7 +121,7 @@ if __name__ == '__main__':
     
     number_of_consumers = int(sys.argv[1])
 
-    nodes = get_first_n_items(all_nodes, number_of_consumers+1)
+    nodes = get_first_n_items(all_nodes, number_of_consumers+1) # get n+1 nodes from all nodes
 
     # this topo setup only works for this experiment, 1 ap and x number of stations
     _s = []
@@ -148,28 +132,35 @@ if __name__ == '__main__':
     for ap in accessPoint:
         _ap.append(topo.addAccessPoint(ap, **accessPoint[ap]))
 
-    optsforlink1  = {'bw':54, 'delay':'5ms', 'loss':0, 'mode': 'g'}
+    optsforlink1  = {'bw':54, 'delay':'5ms', 'loss':0, 'mode': 'g'} # bandwidth of link, delay of the link, packet loss percentage
 
     for s in _s:
-        topo.addLink(s, _ap[0], **optsforlink1)
+        topo.addLink(s, _ap[0], **optsforlink1) #adds a wireless link between the current station s and the first access point (_ap[0]).
         # topo.addLink(s, _ap[0], delay='5ms')
 
+        #creates a network topology with wireless stations and an access point. 
+        # It then adds wireless links between each station and the first access point, with link characteristics defined by the optsforlink1 dictionary
+
+
+
+    # creating instance of MinindnWifi with wireless network topology defined by the topo object.
     ndnwifi = MinindnWifi(topo=topo)
 
     args = ndnwifi.args
-    args.ifb = True
-    args.host = CPULimitedHost
+    args.ifb = True # enabling itermediate functional block which is linux kernel module used for traffic shaping and quality of service puropose
+    args.host = CPULimitedHost # host used in network emulation is a host class that limits the CPU usaage of the emulated hosts, 
+    #useful for simulating scenarios with resource-constrained devices.
     
-    testFile = "/home/map901/sdulal/multicast-suppression-ndn/files/{}.dat".format(_F_NAME)
+    testFile = "/home/bidhya/Desktop/saurabLatestJuly/files/{}.dat".format(_F_NAME)
     # testFile = "/home/mini-ndn/europa_bkp/mini-ndn/sdulal_new/multicast-supression-ndn/files/output.dat"
     i = 1024
     for node in ndnwifi.net.stations:
         # runTshark(node) # run tshark on nodes
         i = i*2
-        cmd = "echo {} > {}".format(i, "seed")
-        node.cmd(cmd)
-        node.cmd("sysctl net.ipv4.ipfrag_time = 10")
-        node.cmd("sysctl net.ipv4.ipfrag_high_thresh = 26214400")
+        cmd = "echo {} > {}".format(i, "seed") #creates a shell command that writes the value of i to a file named "seed". The file "seed" will have the value of i (e.g., 2048, 4096, 8192, etc.).
+        node.cmd(cmd) #execute the command on the station. This allows running Linux shell commands on the emulated hosts.
+        node.cmd("sysctl net.ipv4.ipfrag_time = 10") #sets the value of the net.ipv4.ipfrag_time parameter to 10 on the station.
+        node.cmd("sysctl net.ipv4.ipfrag_high_thresh = 26214400") #sets the value of the net.ipv4.ipfrag_high_thresh parameter to 26214400 on the station. This parameter is related to the high threshold for IPv4 packet fragmentation
     sleep(1)
 
     producers_prefix = {"sta1" : "/producer/sta1"} #, "sta2":"/producer/sta2"} # , "sta3":"/producer/sta3", "sta4":"/producer/sta4"}
