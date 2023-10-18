@@ -17,23 +17,22 @@ class Agent:
 
 
   def choose_action(self, observation):
-    state = tf.convert_to_tensor([observation])
-    _, mu, sigma = self.actor_critic(state)
+    # state = tf.convert_to_tensor([observation])
+    _, mu, sigma = self.actor_critic(observation)
 
     # Create a normal distribution with the calculated mean (mu) and standard deviation (sigma)
     action_distribution = tfp.distributions.Normal(loc=mu, scale=sigma)
 
     # Sample an action from the distribution
     raw_action = action_distribution.sample()
-    print("The raw action before clipping", raw_action)
     action = tf.clip_by_value(raw_action, clip_value_min=0.0, clip_value_max=tf.float32.max)
 
     # Calculate the log probability of the chosen action
     log_prob = action_distribution.log_prob(action)
+    self.action = action
 
     # Store the chosen action in the instance variable
     action = action[0]
-    print("Action after clippping ",action)
 
     return action.numpy()[0]
    
@@ -46,12 +45,31 @@ class Agent:
     print('... loading models ...')
     self.actor_critic.load_weights(self.actor_critic.checkpoint_file) 
 
-    # learn the policy
+  def get_reward(self, ewma_duplicate_count, rtt, srtt, alpha=0.5, beta=0.4, gamma=0.3):
+    if rtt is not None:
+        reward = -(alpha * float(ewma_duplicate_count) + beta * rtt + gamma * (rtt - srtt))
+    else:
+        reward = -(alpha * float(ewma_duplicate_count) + gamma * srtt)
+    return reward
+
+  # learn the policy
   def learn(self, state, reward, state_, done):
     state = tf.convert_to_tensor([state], dtype=tf.float32)
-    state_ = tf.convert_to_tensor([state_], dtype=tf.float32)
+    padding_size = 130 - state.shape[1]
+    paddings = tf.constant([[0, 0], [0, padding_size]])
+
+      # # Pad the tensor
+    state = tf.pad(state, paddings, 'CONSTANT')
+      #padded_tensor = new_embeddings
+
+      # Now, padded_tensor will have a shape of (1, 120)
+    # state_ = tf.convert_to_tensor([state_], dtype=tf.float32)
+  
     reward = tf.convert_to_tensor([reward], dtype=tf.float32)
+    
     done = tf.convert_to_tensor([int(done)], dtype=tf.float32)
+    # print("Previous state tensor", state)
+    # print("New tensor of state", state_)
       
     '''
     GradientTape is a TensorFlow tool that is used for automatic differentiation. 
@@ -62,30 +80,29 @@ class Agent:
     with respect to the loss function, which allows the weights of the neural network 
     to be updated in a direction that improves the performance of the agent.
     '''
-    with tf.GradientTape() as tape:
-      # Compute predicted value and action probabilities
-      value, probs = self.actor_critic(state)
-      value_, _ = self.actor_critic(state_)
 
-      # Compute advantages and TD error
-      td_error = reward + self.gamma * value_ * (1 - done) - value
+    with tf.GradientTape() as tape:
+      value, mu, sigma = self.actor_critic(state)
+      value_, _, _ = self.actor_critic(state_)
+     
+
+      td_error = reward + self.gamma * value_ * (1 - done) -value
+      print("TD error = ", td_error)
       advantage = td_error
 
-      # Compute actor and critic losses
-      dist = tfp.distributions.Normal(loc=probs[0][0], scale=probs[0][1])
+      dist = tfp.distributions.Normal(loc=mu, scale=sigma)
+      print("Distribution ",dist)
       log_prob = dist.log_prob(self.action)
+      print("Log probability =", log_prob)
       actor_loss = -log_prob * tf.stop_gradient(advantage)
       critic_loss = tf.square(td_error)
 
-      # Compute total loss
       loss = actor_loss + critic_loss
-
     # Compute gradients and update weights
     gradients = tape.gradient(loss, self.actor_critic.trainable_variables)
     self.actor_critic.optimizer.apply_gradients(zip(gradients, self.actor_critic.trainable_variables))
   
 
 
-    
 
 

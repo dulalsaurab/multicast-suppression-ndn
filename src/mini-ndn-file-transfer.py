@@ -25,7 +25,9 @@ _F_NAME = "transfer"
 
 # rl_dir="/home/Desktop/saurabLatestJuly/new-suppression-rl"
 # rl_dir="/home/bidhya/Desktop/saurabLatestJuly/new-suppression-rl"
-rl_dir="/home/bidhya/Desktop/saurabLatestJuly/bidhya-rl"
+# rl_dir="/home/bidhya/Desktop/saurabLatestJuly/bidhya-rl"
+# rl_dir = "/home/bidhya/Desktop/saurabLatestJuly/without-rl"
+rl_dir = "/home/bidhya/Desktop/saurabLatestJuly/simple-embedding-rl"
 
 
 all_nodes = {
@@ -204,5 +206,6 @@ if __name__ == '__main__':
             receiveFile(c, producers_prefix[p.name], p.name+".txt")
 
 
-    sleep(60)
+    MiniNDNWifiCLI(ndnwifi.net)
+    # sleep(60)
     ndnwifi.stop()

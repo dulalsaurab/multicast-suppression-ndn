@@ -5,6 +5,7 @@ import copy
 import random
 import numpy as np
 import time
+import os
 
 
 import tensorflow as tf
@@ -28,7 +29,7 @@ map_counter = -1
 # maximum length of each string, i.e. object (12) + dup_counter (1)+ delay_timer (1) 
 MAX_LENGTH = 4
 
-
+ 
 class MulticastEnvironment():
   action_bound = [0, 10]
   action_dim = 4
@@ -44,8 +45,16 @@ class MulticastEnvironment():
     # Scale the continuous action from [-1, 1] to [action_bound[0], action_bound[1]]
     action = (action + 1) / 2 * (self.action_bound[1] - self.action_bound[0]) + self.action_bound[0]
 
-  def step(self, action):
-    self.take_action(action)
+  def step(self, action, fifo_object_details):
+    # self.take_action(action)
+    write_pipe = os.open(fifo_object_details, os.O_WRONLY)
+    
+    response = "{}".format(action)
+      
+    os.write(write_pipe, response.encode())
+
+    os.close(write_pipe)
+    
     reward = self.get_reward()
     episode_over = False
     return self.curr_state, reward, episode_over, {}

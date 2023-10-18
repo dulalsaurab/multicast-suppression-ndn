@@ -4,7 +4,6 @@ import time
 from sys import argv, exit
 import string
 import json
-import errno
 
 import numpy as np
 from agent import Agent
@@ -17,6 +16,8 @@ from pathlib import Path as p
 fifo_suppression_value = 'fifo_suppression_value' #we don't care if this file is chaged because we write to this file
 fifo_object_details = 'fifo_object_details'
 num = 0
+start_time = time.time()
+time_taken = 0.0
 
 '''
 The Memory class is used to store the observations, actions, and rewards of the agent at each step during training. 
@@ -58,25 +59,13 @@ if __name__ == "__main__":
   # mcast_sup = MulticastSuppression(fifo_object_details, fifo_suppression_value)
   print ("The reinforcement is starting........")
   print("*********", p.cwd(), "*************") # for debugging
-  
 
-  try:
-    os.mkfifo(fifo_object_details, mode=0o777)
-  except OSError as oe:
-    if oe.errno != errno.EEXIST:
-      print("File does not exist!!!")
-      raise
 
   counter = 0 # this is only for testing, modify accordingly
-  while True:
-    try:
-      read_pipe = os.open(fifo_object_details, os.O_RDONLY)
-      bytes = os.read(read_pipe, 1024)
-      if len(bytes) == 0:
-        print("length of byte is zero")
-        break
-      states_string = bytes.decode()
-      states_dict = json.loads(states_string)
+  while counter < 5:
+
+      states_dict = {"expMovingAverageCurrent":"1","expMovingAveragePrev":"0","prefix_name":"\/producer\/sta1\/transfer\/v=1692376379134","dc":"1.3","wasForwarded":"true"}
+     
       # 1 
       # 2
       # {"expMovingAverageCurrent":"1","expMovingAveragePrev":"0","prefix_name":"\/producer\/sta1\/transfer\/v=1692376379134","dc":"1.3","wasForwarded":"true"}
@@ -86,51 +75,38 @@ if __name__ == "__main__":
       # 3 ={"expMovingAverageCurrent":"1","expMovingAveragePrev":"0.02","prefix_name":"\/producer\/sta1\/transfer\/v=1692376379134","dc":"1.2","wasForwarded":"true"}
 
       states_values = [str(value) for value in states_dict.values()]
-      
       result = '/'.join(states_values)
-      print("Fifo content : ", result)
-      embeddings = generate_positional_one_hot_vector(result)    
-      new_embeddings = tf.convert_to_tensor([embeddings], dtype=tf.float32)
-      padding_size = 130 - new_embeddings.shape[1]
+      embeddings = generate_positional_one_hot_vector(result)
+      state = tf.convert_to_tensor([embeddings])
+      print(state)
+      padding_size = 130 - state.shape[1]
       paddings = tf.constant([[0, 0], [0, padding_size]])
 
-      # # Pad the tensor
-      padded_tensor = tf.pad(new_embeddings, paddings, 'CONSTANT')
-      #padded_tensor = new_embeddings
+      # Pad the tensor
+      padded_tensor = tf.pad(state, paddings, 'CONSTANT')
 
       # Now, padded_tensor will have a shape of (1, 120)
-
+      print("pdded embeddings", padded_tensor)
       
       agent = Agent()
-      action = agent.choose_action(padded_tensor)
+      action = agent.choose_action(embeddings)
       print("Final action  = ", action)
-      os.close(read_pipe)
-
-      write_pipe = os.open(fifo_object_details, os.O_WRONLY)
-    
-      response = "{}".format(action)
-      os.write(write_pipe, response.encode())
-      os.close(write_pipe)
 
       if states_dict["prefix_name"] in experience_dict.keys():
-        dc = states_dict["ewma_dc"]
-        rtt = float(states_dict["rtt"])
-        srtt = float(states_dict["srtt"])
-        reward = agent.get_reward(dc, rtt, srtt)
-        previous_state = experience_dict[states_dict["prefix_name"]] 
-        current_state = padded_tensor
-        if(states_dict["ewma_dc"]=="0.0"):
-          done = 1
-        print("Reward", reward)
-      
         
-        agent.learn(previous_state, reward, current_state,done)
+        dc = states_dict["dc"]
+        reward = agent.get_reward(dc, 5, 4)
+        previous_state = experience_dict[states_dict["prefix_name"]] 
+
+        current_state = embeddings
+        if(states_dict["dc"]=="0.0"):
+          done = 1
+        
+        # agent.learn(previous_state, reward, current_state,done)
+      end_normal_time = time.time()
+      print("time taken 1st= ", end_normal_time-start_time)
+
       experience_dict[states_dict["prefix_name"]] = embeddings
-      counter = counter + 1
-      print("Counter in RL: ", counter)
-
-
-
-    except Exception as e:
-      print ("exception: ", e)
-  
+      counter =counter + 1
+      time_taken = float(time_taken) + float(end_normal_time)
+      print("The time taken ", time_taken)

@@ -8,7 +8,7 @@ from network import ActorCriticNetwork
 
 class Agent:
   def __init__(self, alpha=0.0003, gamma=0.99, n_actions=1):
-    print("Agent old initializing")
+    print("Agent initializing")
     self.gamma = gamma
     self.n_actions = n_actions
     self.action = None          #keep track of last action
@@ -16,25 +16,46 @@ class Agent:
     self.actor_critic = ActorCriticNetwork(n_actions=n_actions)
     self.actor_critic.compile(optimizer=Adam(learning_rate=alpha))
 
+  # def choose_action(self, observation):
+  #   state = tf.convert_to_tensor([observation])
+  #   _, probs = self.actor_critic(state)     #feed through neural network
+    
+  #   # action_probabilities = tfp.distributions.Normal(loc=probs[0][0], scale=probs[0][1])
+  #   # print(probs)
+  #   mean = probs[0][0]
+  #   std_dev = scale=probs[0][1]
+
+  #   action_probabilities = tfp.distributions.Normal(loc=mean, scale=std_dev)
+  #   action = action_probabilities.sample()
+  #   log_prob = action_probabilities.log_prob(action)
+    
+  #   # log_prob = tf.reduce_sum(tfp.distributions.Normal(mean, std_dev).log_prob(action))
+
+  #   # print("Log Probability, ====", log_prob)
+  #   self.action = action
+  #   return action.numpy()
   def choose_action(self, observation):
-    print("Agent old choose_action calling !!!!!!!!!!!!!!!!!!!!")
+    print("reached choose action !!!!!!!!!!!!!!!!!!!!!!!!")
     state = tf.convert_to_tensor([observation])
-    _, probs = self.actor_critic(state)     #feed through neural network
-    
-    # action_probabilities = tfp.distributions.Normal(loc=probs[0][0], scale=probs[0][1])
-    print(probs)
-    mean = probs[0][0]
-    std_dev = scale=probs[0][1]
+    _, mu, sigma = self.actor_critic(state)
+    print("Mean ", mu)
+    print("Sigma ", sigma)
 
-    action_probabilities = tfp.distributions.Normal(loc=mean, scale=std_dev)
-    action = action_probabilities.sample()
-    log_prob = action_probabilities.log_prob(action)
-    
-    # log_prob = tf.reduce_sum(tfp.distributions.Normal(mean, std_dev).log_prob(action))
+          # Create a normal distribution with the calculated mean (mu) and standard deviation (sigma)
+    action_distribution = tfp.distributions.Normal(loc=mu, scale=sigma)
+    print("The action distribution is ", action_distribution)
 
-    print("Log Probability, ====", log_prob)
+          # Sample an action from the distribution
+    action = action_distribution.sample()
+    print("THe sampled action is ", action)
+
+          # Calculate the log probability of the chosen action
+    log_prob = action_distribution.log_prob(action)
+
+          # Store the chosen action in the instance variable
     self.action = action
-    return action.numpy()
+
+    return action.numpy()[0]
 
   def save_models(self):
     print('... saving models ...')
@@ -43,6 +64,7 @@ class Agent:
   def load_models(self):
     print('... loading models ...')
     self.actor_critic.load_weights(self.actor_critic.checkpoint_file)
+
     
 
     # learn the policy
@@ -82,4 +104,9 @@ class Agent:
     # Compute gradients and update weights
     gradients = tape.gradient(loss, self.actor_critic.trainable_variables)
     self.actor_critic.optimizer.apply_gradients(zip(gradients, self.actor_critic.trainable_variables))
+  
+
+
+    
+
 

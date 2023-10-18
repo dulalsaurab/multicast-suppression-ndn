@@ -130,7 +130,7 @@ _FIFO::fifo_handler(const std::string& content)
     }
     int bytesRead = read(pipeFile, buffer, sizeof(buffer) - 1);
     buffer[bytesRead] = '\0';
-    NFD_LOG_INFO("Python: " << buffer);
+    NFD_LOG_INFO("PythonTest Test: " << buffer);
 
     close(pipeFile);
 }
@@ -306,11 +306,11 @@ EMAMeasurements::updateDelayTime(bool wasForwarded, std::string name)
 
   boost::property_tree::ptree message;
 
-  message.put("a", m_expMovingAverageCurrent);
-  message.put("b", m_expMovingAveragePrev);
-  message.put("c", name);
-  message.put("d", DUPLICATE_THRESHOLD);
-  message.put("e", wasForwarded);
+  message.put("abcdef", m_expMovingAverageCurrent);
+  message.put("bcdeg", m_expMovingAveragePrev);
+  message.put("cfdfsdfdsf", name);
+  message.put("dfgfdgf", DUPLICATE_THRESHOLD);
+  message.put("efdgfdgf", wasForwarded);
 
   std::ostringstream oss;
   boost::property_tree::write_json(oss, message, false);
