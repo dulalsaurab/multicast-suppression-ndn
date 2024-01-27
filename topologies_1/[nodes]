@@ -1,0 +1,8 @@
+[nodes]
+sta1: 
+sta2: 
+sta3: 
+
+[links]
+sta1:sta2 delay=50ms
+sta2:sta3 delay=50ms
