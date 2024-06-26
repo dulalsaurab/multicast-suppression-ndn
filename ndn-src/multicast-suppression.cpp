@@ -39,8 +39,8 @@ const double maxSuppressionTime= 15000.0f;
 static bool seeded = false;
 
 unsigned int UNSET = -1234;
-const uint8_t CHARACTER_SIZE = 126;
-const uint8_t MAX_IGNORE = 3;
+const int CHARACTER_SIZE = 126;
+const int MAX_IGNORE = 3;
 
 /* only for experimentation, will be removed later */
 int
@@ -117,6 +117,7 @@ NameTree::longestPrefixMatch(const std::string& prefix) // longest prefix match
 time::milliseconds
 NameTree::getSuppressionTimer(const std::string& name)
 {
+  NFD_LOG_INFO("Get Suppression Timer for " << name);
   double val, suppressionTime;
   val = longestPrefixMatch(name);
   suppressionTime = (val == UNSET) ? minSuppressionTime : val;
@@ -131,7 +132,7 @@ NameTree::getSuppressionTimer(const std::string& name)
   start with 15ms, MAX propagation time, for a node to hear other node
   or start with 1ms, and let node find stable suppression time region?
 */
-EMAMeasurements::EMAMeasurements(double expMovingAverage = 0, uint8_t lastDuplicateCount = 0, double suppressionTime = 1)
+EMAMeasurements::EMAMeasurements(double expMovingAverage = 0, int lastDuplicateCount = 0, double suppressionTime = 1)
 : m_expMovingAveragePrev (expMovingAverage)
 , m_expMovingAverageCurrent (expMovingAverage)
 , m_currentSuppressionTime(suppressionTime)
@@ -148,8 +149,9 @@ EMAMeasurements::EMAMeasurements(double expMovingAverage = 0, uint8_t lastDuplic
  EMA  = alpha*Dt + (1 - alpha) * EMA t-1
 */
 void
-EMAMeasurements::addUpdateEMA(uint8_t duplicateCount, bool wasForwarded)
+EMAMeasurements::addUpdateEMA(int duplicateCount, bool wasForwarded)
 { 
+  NFD_LOG_INFO("addUPdateEma for " << wasForwarded);
   // If duplicate count is greater than last duplicate count, increase the ignore counter
   // else reset it to 0.  
   m_ignoreDuplicateRecoring  = (duplicateCount > m_lastDuplicateCount) ? (m_ignoreDuplicateRecoring+1) : 0;
@@ -197,6 +199,7 @@ EMAMeasurements::addUpdateEMA(uint8_t duplicateCount, bool wasForwarded)
 void
 EMAMeasurements::updateDelayTime(bool wasForwarded)
 {
+  NFD_LOG_INFO("Update delay timer called " << wasForwarded);
   double temp;
   // Implicit action: if you haven’t reached the goal, but your moving average is decreasing then do nothing.
   if (m_expMovingAverageCurrent > DUPLICATE_THRESHOLD &&
@@ -213,6 +216,7 @@ EMAMeasurements::updateDelayTime(bool wasForwarded)
     temp = m_currentSuppressionTime;
   }
   m_currentSuppressionTime =  std::min(std::max(m_minSuppressionTime, temp), maxSuppressionTime);
+  NFD_LOG_INFO("Suppression time updated with " << m_currentSuppressionTime << " forwarded status " << wasForwarded);
 }
 
 
@@ -220,7 +224,9 @@ void
 MulticastSuppression::recordInterest(const Interest& interest, bool isForwarded)
 {
   auto name = interest.getName();
-  NFD_LOG_INFO("Interest to check/record: " << name);
+  NFD_LOG_INFO("recordInterest called for " << name << " status " << isForwarded);
+
+  NFD_LOG_INFO("Interest to check/record: " << name << " the forward status is " << isForwarded);
 
   auto it = m_interestHistory.find(name);
   // Check if interest is already in the map
@@ -245,7 +251,9 @@ MulticastSuppression::recordInterest(const Interest& interest, bool isForwarded)
 void
 MulticastSuppression::recordData(const Data& data, bool isForwarded)
 {
+  
   auto name = data.getName(); //.getPrefix(-1); //removing nounce
+  NFD_LOG_INFO("recordData called for " << name << " status " << isForwarded);
   NFD_LOG_INFO("Data to check/record " << name);
 
   auto it = m_dataHistory.find(name);
@@ -286,7 +294,7 @@ MulticastSuppression::recordData(const Data& data, bool isForwarded)
   ndn::Name interestOrDataObjectName = name;
   interestOrDataObjectName.appendNumber(0);
   auto itr_timer = m_objectExpirationTimer.find(interestOrDataObjectName);
-  if (itr_timer != m_objectExpirationTimer.end()) {
+  if (itr_timer != m_objectExpirationTimer.end()) { // interest ko propagation time expire vayera interest delete huda pani cal vayo
     NFD_LOG_INFO("Data overheard, deleting interest " <<name << " from the map");
     itr_timer->second.cancel();
     
@@ -302,6 +310,7 @@ MulticastSuppression::recordData(const Data& data, bool isForwarded)
 void
 MulticastSuppression::setUpdateExpiration(time::milliseconds entryLifetime, Name name, char type)
 {
+  NFD_LOG_INFO("setUpdateExpriration called for " << name);
   auto objectHistory = getRecorder(type);
   auto eventId = getScheduler().schedule(entryLifetime, [=]  {
       if (objectHistory->count(name) > 0) {
@@ -326,6 +335,7 @@ MulticastSuppression::setUpdateExpiration(time::milliseconds entryLifetime, Name
 
 void MulticastSuppression::updateMeasurement(Name name, char type)
 {
+  NFD_LOG_INFO("Update Measurement for " << name.toUri() << " type " << type);
   auto objectHistory = getEMARecorder(type);
   auto nameTree = getNameTree(type);
   auto duplicateCount = getDuplicateCount(name, type);
@@ -361,7 +371,7 @@ void MulticastSuppression::updateMeasurement(Name name, char type)
 time::milliseconds
 MulticastSuppression::getDelayTimer(Name name, char type)
 {
-  NFD_LOG_INFO("Getting supperssion timer for name: " << name);
+  NFD_LOG_INFO("getDelayTimer called Getting supperssion timer for name: " << name << " type " << type);
   auto nameTree = getNameTree(type);
   if (!nameTree) {
     NFD_LOG_ERROR("Name tree is null");
