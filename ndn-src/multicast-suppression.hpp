@@ -35,10 +35,10 @@ class EMAMeasurements
 {
 
 public:
-  EMAMeasurements(double expMovingAverage, uint8_t lastDuplicateCount, double suppressionTime);
+  EMAMeasurements(double expMovingAverage, int lastDuplicateCount, double suppressionTime);
 
   void
-  addUpdateEMA(uint8_t duplicateCount, bool wasForwarded);
+  addUpdateEMA(int duplicateCount, bool wasForwarded);
 
   scheduler::EventId&
   getEMAExpiration()
@@ -78,11 +78,11 @@ private:
   double m_expMovingAverageCurrent;
   double m_currentSuppressionTime;
   scheduler::EventId m_expirationId;
-  uint8_t m_lastDuplicateCount;
-  uint8_t m_maxDuplicateCount;
+  int m_lastDuplicateCount;
+  int m_maxDuplicateCount;
   double m_minSuppressionTime;
   double m_ssthress;
-  uint8_t m_ignoreDuplicateRecoring;
+  int m_ignoreDuplicateRecoring;
 };
 
 
@@ -92,7 +92,7 @@ public:
 
   struct ObjectHistory
   {
-    uint8_t counter;
+    int counter;
     bool isForwarded;
   };
 
@@ -102,7 +102,7 @@ public:
   void
   recordData(const Data& data, bool isForwarded = false);
 
-  uint8_t
+  int
   getDuplicateCount(const Name name, char type)
   {
     auto temp_map = getRecorder(type);

@@ -45,6 +45,7 @@ LinkService::setFaceAndTransport(Face& face, Transport& transport) noexcept
 void
 LinkService::sendInterest(const Interest& interest)
 {
+  NFD_LOG_INFO("SendInterest function from linkservice called for interest " << interest.getName());
   BOOST_ASSERT(m_transport != nullptr);
   NFD_LOG_FACE_TRACE(__func__);
 
@@ -58,6 +59,9 @@ LinkService::sendInterest(const Interest& interest)
   // check if the interest is already in flight
   if (m_multicastSuppression.interestInflight(interest)) {
     NFD_LOG_INFO ("Interest drop, Interest " <<  interest.getName() << " is in flight, drop the forwarding");
+
+
+    //Send update to RL
     return; // need to catch this, what should be the behaviour after dropping the interest?? 
   }
   // wait for suppression time before forwarding
@@ -81,6 +85,7 @@ LinkService::sendInterest(const Interest& interest)
 void
 LinkService::sendData(const Data& data)
 {
+  NFD_LOG_INFO("SendData function from linkservice called for interest " << data.getName());
   BOOST_ASSERT(m_transport != nullptr);
   NFD_LOG_FACE_TRACE(__func__);
   if (this->getFace()->getLinkType() != ndn::nfd::LINK_TYPE_MULTI_ACCESS)
@@ -132,6 +137,7 @@ LinkService::sendNack(const ndn::lp::Nack& nack)
 bool
 LinkService::cancelIfSchdeuled(Name name, int type)
 {
+  NFD_LOG_INFO("CancelIfScheduled function from linkservice called for interest " << name);
   auto entry_name = name.appendNumber(type);
   auto it = m_scheduledEntry.find(entry_name);
   if (it != m_scheduledEntry.end()) {
@@ -145,6 +151,7 @@ LinkService::cancelIfSchdeuled(Name name, int type)
 void
 LinkService::receiveInterest(const Interest& interest, const EndpointId& endpoint)
 {
+  NFD_LOG_INFO("receiveInterest function from linkservice called for interest " << interest.getName());
   NFD_LOG_FACE_TRACE(__func__);
   // record multicast interest
   if (this->getFace()->getLinkType() == ndn::nfd::LINK_TYPE_MULTI_ACCESS)
@@ -162,6 +169,7 @@ LinkService::receiveInterest(const Interest& interest, const EndpointId& endpoin
 void
 LinkService::receiveData(const Data& data, const EndpointId& endpoint)
 {
+  NFD_LOG_INFO("receiveData function from linkservice called for interest " << data.getName());
   NFD_LOG_FACE_TRACE(__func__);
   // record multicast Data received
   if (this->getFace()->getLinkType() == ndn::nfd::LINK_TYPE_MULTI_ACCESS)
